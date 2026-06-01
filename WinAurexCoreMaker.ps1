@@ -339,11 +339,46 @@ Rename-Item -Path $mainOSDrive\scratchdir\Windows\WinSxS_edit -NewName $mainOSDr
 Write-Host "Complete!"
 
 Write-Host "Loading registry..."
-reg load HKLM\zCOMPONENTS $ScratchDisk\scratchdir\Windows\System32\config\COMPONENTS | Out-Null
-reg load HKLM\zDEFAULT $ScratchDisk\scratchdir\Windows\System32\config\default | Out-Null
-reg load HKLM\zNTUSER $ScratchDisk\scratchdir\Users\Default\ntuser.dat | Out-Null
-reg load HKLM\zSOFTWARE $ScratchDisk\scratchdir\Windows\System32\config\SOFTWARE | Out-Null
-reg load HKLM\zSYSTEM $ScratchDisk\scratchdir\Windows\System32\config\SYSTEM | Out-Null
+reg load HKLM\zCOMPONENTS $mainOSDrive\scratchdir\Windows\System32\config\COMPONENTS | Out-Null
+reg load HKLM\zDEFAULT $mainOSDrive\scratchdir\Windows\System32\config\default | Out-Null
+reg load HKLM\zNTUSER $mainOSDrive\scratchdir\Users\Default\ntuser.dat | Out-Null
+reg load HKLM\zSOFTWARE $mainOSDrive\scratchdir\Windows\System32\config\SOFTWARE | Out-Null
+reg load HKLM\zSYSTEM $mainOSDrive\scratchdir\Windows\System32\config\SYSTEM | Out-Null
+Write-Host "Applying OEM Info and Custom Wallpapers to install.wim..."
+$oemFolder = "$PSScriptRoot\OEM Info"
+if (Test-Path "$oemFolder\img0.jpg") {
+    $img0Path = "$mainOSDrive\scratchdir\Windows\Web\Wallpaper\Windows\img0.jpg"
+    $img04kPath = "$mainOSDrive\scratchdir\Windows\Web\Wallpaper\Windows\img0_3840x2160.jpg"
+    if (Test-Path $img0Path) { & takeown /f $img0Path > $null 2>&1; & icacls $img0Path /grant "$($adminGroup.Value):(F)" /c /q > $null 2>&1 }
+    if (Test-Path $img04kPath) { & takeown /f $img04kPath > $null 2>&1; & icacls $img04kPath /grant "$($adminGroup.Value):(F)" /c /q > $null 2>&1 }
+    Copy-Item "$oemFolder\img0.jpg" $img0Path -Force
+    Copy-Item "$oemFolder\img0.jpg" $img04kPath -Force
+}
+if (Test-Path "$oemFolder\img19.jpg") {
+    $img19Path = "$mainOSDrive\scratchdir\Windows\Web\Wallpaper\Windows\img19.jpg"
+    $img194kPath = "$mainOSDrive\scratchdir\Windows\Web\Wallpaper\Windows\img19_3840x2160.jpg"
+    if (Test-Path $img19Path) { & takeown /f $img19Path > $null 2>&1; & icacls $img19Path /grant "$($adminGroup.Value):(F)" /c /q > $null 2>&1 }
+    if (Test-Path $img194kPath) { & takeown /f $img194kPath > $null 2>&1; & icacls $img194kPath /grant "$($adminGroup.Value):(F)" /c /q > $null 2>&1 }
+    Copy-Item "$oemFolder\img19.jpg" $img19Path -Force
+    Copy-Item "$oemFolder\img19.jpg" $img194kPath -Force
+}
+if (Test-Path "$oemFolder\oemlogo.bmp") {
+    $logoPath = "$mainOSDrive\scratchdir\Windows\System32\oemlogo.bmp"
+    if (Test-Path $logoPath) { & takeown /f $logoPath > $null 2>&1; & icacls $logoPath /grant "$($adminGroup.Value):(F)" /c /q > $null 2>&1 }
+    Copy-Item "$oemFolder\oemlogo.bmp" $logoPath -Force
+}
+
+# OEM Registry Info
+$oemKey = "HKLM\zSOFTWARE\Microsoft\Windows\CurrentVersion\OEMInformation"
+& 'reg' 'add' $oemKey '/v' 'Manufacturer' '/t' 'REG_SZ' '/d' 'WinAurex' '/f' | Out-Null
+& 'reg' 'add' $oemKey '/v' 'Model' '/t' 'REG_SZ' '/d' 'WinAurex 11 OS Pro' '/f' | Out-Null
+& 'reg' 'add' $oemKey '/v' 'SupportPhone' '/t' 'REG_SZ' '/d' '+91 7778906798' '/f' | Out-Null
+& 'reg' 'add' $oemKey '/v' 'SupportURL' '/t' 'REG_SZ' '/d' 'wa.me/917778906798' '/f' | Out-Null
+& 'reg' 'add' $oemKey '/v' 'SupportHours' '/t' 'REG_SZ' '/d' 'Mon-Fri 9AM-5PM' '/f' | Out-Null
+& 'reg' 'add' $oemKey '/v' 'Logo' '/t' 'REG_SZ' '/d' 'C:\Windows\System32\oemlogo.bmp' '/f' | Out-Null
+& 'reg' 'add' $oemKey '/v' 'Author' '/t' 'REG_SZ' '/d' 'Farhan Shaikh' '/f' | Out-Null
+& 'reg' 'add' $oemKey '/v' 'Author Info' '/t' 'REG_SZ' '/d' 'https://github.com/YTxFSGAMERz' '/f' | Out-Null
+
 Write-Host "Bypassing system requirements(on the system image):"
 & 'reg' 'add' 'HKLM\zDEFAULT\Control Panel\UnsupportedHardwareNotificationCache' '/v' 'SV1' '/t' 'REG_DWORD' '/d' '0' '/f' | Out-Null
 & 'reg' 'add' 'HKLM\zDEFAULT\Control Panel\UnsupportedHardwareNotificationCache' '/v' 'SV2' '/t' 'REG_DWORD' '/d' '0' '/f' | Out-Null
@@ -387,7 +422,7 @@ Write-Host "Disabling Sponsored Apps:"
 & 'reg' 'add' 'HKLM\zSOFTWARE\Policies\Microsoft\Windows\CloudContent' '/v' 'DisableCloudOptimizedContent' '/t' 'REG_DWORD' '/d' '1' '/f' | Out-Null
 Write-Host "Enabling Local Accounts on OOBE:"
 & 'reg' 'add' 'HKLM\zSOFTWARE\Microsoft\Windows\CurrentVersion\OOBE' '/v' 'BypassNRO' '/t' 'REG_DWORD' '/d' '1' '/f' | Out-Null
-Copy-Item -Path "$PSScriptRoot\autounattend.xml" -Destination "$ScratchDisk\scratchdir\Windows\System32\Sysprep\autounattend.xml" -Force | Out-Null
+Copy-Item -Path "$PSScriptRoot\autounattend.xml" -Destination "$mainOSDrive\scratchdir\Windows\System32\Sysprep\autounattend.xml" -Force | Out-Null
 Write-Host "Disabling Reserved Storage:"
 & 'reg' 'add' 'HKLM\zSOFTWARE\Microsoft\Windows\CurrentVersion\ReserveManager' '/v' 'ShippedWithReserves' '/t' 'REG_DWORD' '/d' '0' '/f' | Out-Null
 Write-Host "Disabling BitLocker Device Encryption"
@@ -507,6 +542,23 @@ reg load HKLM\zDEFAULT $mainOSDrive\scratchdir\Windows\System32\config\default
 reg load HKLM\zNTUSER $mainOSDrive\scratchdir\Users\Default\ntuser.dat
 reg load HKLM\zSOFTWARE $mainOSDrive\scratchdir\Windows\System32\config\SOFTWARE
 reg load HKLM\zSYSTEM $mainOSDrive\scratchdir\Windows\System32\config\SYSTEM
+Write-Host "Applying Setup Customizations to boot.wim..."
+if (Test-Path "$oemFolder\background.bmp") {
+    $bgPath = "$mainOSDrive\scratchdir\sources\background.bmp"
+    if (Test-Path $bgPath) { & takeown /f $bgPath > $null 2>&1; & icacls $bgPath /grant "$($adminGroup.Value):(F)" /c /q > $null 2>&1 }
+    Copy-Item "$oemFolder\background.bmp" $bgPath -Force
+}
+if (Test-Path "$oemFolder\setup.bmp") {
+    $setupPath = "$mainOSDrive\scratchdir\sources\setup.bmp"
+    if (Test-Path $setupPath) { & takeown /f $setupPath > $null 2>&1; & icacls $setupPath /grant "$($adminGroup.Value):(F)" /c /q > $null 2>&1 }
+    Copy-Item "$oemFolder\setup.bmp" $setupPath -Force
+}
+if (Test-Path "$oemFolder\winpe.jpg") {
+    $pePath = "$mainOSDrive\scratchdir\Windows\System32\winpe.jpg"
+    if (Test-Path $pePath) { & takeown /f $pePath > $null 2>&1; & icacls $pePath /grant "$($adminGroup.Value):(F)" /c /q > $null 2>&1 }
+    Copy-Item "$oemFolder\winpe.jpg" $pePath -Force
+}
+
 Write-Host "Bypassing system requirements(on the setup image):"
 & 'reg' 'add' 'HKLM\zDEFAULT\Control Panel\UnsupportedHardwareNotificationCache' '/v' 'SV1' '/t' 'REG_DWORD' '/d' '0' '/f' >null
 & 'reg' 'add' 'HKLM\zDEFAULT\Control Panel\UnsupportedHardwareNotificationCache' '/v' 'SV2' '/t' 'REG_DWORD' '/d' '0' '/f' >null
@@ -563,7 +615,7 @@ if ([System.IO.Directory]::Exists($ADKDepTools)) {
     $OSCDIMG = $localOSCDIMGPath
 }
 
-& "$OSCDIMG" '-m' '-o' '-u2' '-udfver102' "-bootdata:2#p0,e,b$ScratchDisk\WinAurex\boot\etfsboot.com#pEF,e,b$ScratchDisk\WinAurex\efi\microsoft\boot\efisys.bin" "$ScratchDisk\WinAurex" "$PSScriptRoot\WinAurex.iso"
+& "$OSCDIMG" '-m' '-o' '-u2' '-udfver102' "-bootdata:2#p0,e,b$mainOSDrive\WinAurex\boot\etfsboot.com#pEF,e,b$mainOSDrive\WinAurex\efi\microsoft\boot\efisys.bin" "$mainOSDrive\WinAurex" "$PSScriptRoot\WinAurex.iso"
 
 # Finishing up
 Write-Host "Creation completed! Press any key to exit the script..."
