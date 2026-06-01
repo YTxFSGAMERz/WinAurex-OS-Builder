@@ -14,10 +14,10 @@
     Drive letter of the desired scratch disk (eg: D)
 
 .EXAMPLE
-    .\tiny11maker.ps1 E D
-    .\tiny11maker.ps1 -ISO E -SCRATCH D
-    .\tiny11maker.ps1 -SCRATCH D -ISO E
-    .\tiny11maker.ps1
+    .\WinAurexMaker.ps1 E D
+    .\WinAurexMaker.ps1 -ISO E -SCRATCH D
+    .\WinAurexMaker.ps1 -SCRATCH D -ISO E
+    .\WinAurexMaker.ps1
 
     *If you ordinal parameters the first one must be the mounted iso. The second is the scratch drive.
     prefer the use of full named parameter (eg: "-ISO") as you can put in the order you want.
@@ -88,7 +88,7 @@ $myWindowsPrincipal=new-object System.Security.Principal.WindowsPrincipal($myWin
 $adminRole=[System.Security.Principal.WindowsBuiltInRole]::Administrator
 if (! $myWindowsPrincipal.IsInRole($adminRole))
 {
-    Write-Output "Restarting Tiny11 image creator as admin in a new window, you can close this one."
+    Write-Output "Restarting WinAurex OS Builder as admin in a new window, you can close this one."
     $newProcess = new-object System.Diagnostics.ProcessStartInfo "PowerShell";
     $newProcess.Arguments = $myInvocation.MyCommand.Definition;
     $newProcess.Verb = "runas";
@@ -97,18 +97,18 @@ if (! $myWindowsPrincipal.IsInRole($adminRole))
 }
 
 if (-not (Test-Path -Path "$PSScriptRoot/autounattend.xml")) {
-    Invoke-RestMethod "https://raw.githubusercontent.com/ntdevlabs/tiny11builder/refs/heads/main/autounattend.xml" -OutFile "$PSScriptRoot/autounattend.xml"
+    Invoke-RestMethod "https://raw.githubusercontent.com/ntdevlabs/WinAurex-OS-Builder/refs/heads/main/autounattend.xml" -OutFile "$PSScriptRoot/autounattend.xml"
 }
 
 # Start the transcript and prepare the window
-Start-Transcript -Path "$PSScriptRoot\tiny11_$(get-date -f yyyyMMdd_HHmms).log"
+Start-Transcript -Path "$PSScriptRoot\WinAurex_$(get-date -f yyyyMMdd_HHmms).log"
 
-$Host.UI.RawUI.WindowTitle = "Tiny11 image creator"
+$Host.UI.RawUI.WindowTitle = "WinAurex OS Builder"
 Clear-Host
-Write-Output "Welcome to the tiny11 image creator! Release: 09-07-25"
+Write-Output "Welcome to the WinAurex OS Builder! Release: 09-07-25"
 
 $hostArchitecture = $Env:PROCESSOR_ARCHITECTURE
-New-Item -ItemType Directory -Force -Path "$ScratchDisk\tiny11\sources" | Out-Null
+New-Item -ItemType Directory -Force -Path "$ScratchDisk\WinAurex\sources" | Out-Null
 do {
     if (-not $ISO) {
         $DriveLetter = Read-Host "Please enter the drive letter for the Windows 11 image"
@@ -130,7 +130,7 @@ if ((Test-Path "$DriveLetter\sources\boot.wim") -eq $false -or (Test-Path "$Driv
         $index = Read-Host "Please enter the image index"
         Write-Output ' '
         Write-Output 'Converting install.esd to install.wim. This may take a while...'
-        Export-WindowsImage -SourceImagePath $DriveLetter\sources\install.esd -SourceIndex $index -DestinationImagePath $ScratchDisk\tiny11\sources\install.wim -Compressiontype Maximum -CheckIntegrity
+        Export-WindowsImage -SourceImagePath $DriveLetter\sources\install.esd -SourceIndex $index -DestinationImagePath $ScratchDisk\WinAurex\sources\install.wim -Compressiontype Maximum -CheckIntegrity
     } else {
         Write-Output "Can't find Windows OS Installation files in the specified Drive Letter.."
         Write-Output "Please enter the correct DVD Drive Letter.."
@@ -139,20 +139,20 @@ if ((Test-Path "$DriveLetter\sources\boot.wim") -eq $false -or (Test-Path "$Driv
 }
 
 Write-Output "Copying Windows image..."
-Copy-Item -Path "$DriveLetter\*" -Destination "$ScratchDisk\tiny11" -Recurse -Force | Out-Null
-Set-ItemProperty -Path "$ScratchDisk\tiny11\sources\install.esd" -Name IsReadOnly -Value $false > $null 2>&1
-Remove-Item "$ScratchDisk\tiny11\sources\install.esd" > $null 2>&1
+Copy-Item -Path "$DriveLetter\*" -Destination "$ScratchDisk\WinAurex" -Recurse -Force | Out-Null
+Set-ItemProperty -Path "$ScratchDisk\WinAurex\sources\install.esd" -Name IsReadOnly -Value $false > $null 2>&1
+Remove-Item "$ScratchDisk\WinAurex\sources\install.esd" > $null 2>&1
 Write-Output "Copy complete!"
 Start-Sleep -Seconds 2
 Clear-Host
 Write-Output "Getting image information:"
-$ImagesIndex = (Get-WindowsImage -ImagePath $ScratchDisk\tiny11\sources\install.wim).ImageIndex
+$ImagesIndex = (Get-WindowsImage -ImagePath $ScratchDisk\WinAurex\sources\install.wim).ImageIndex
 while ($ImagesIndex -notcontains $index) {
-    Get-WindowsImage -ImagePath $ScratchDisk\tiny11\sources\install.wim
+    Get-WindowsImage -ImagePath $ScratchDisk\WinAurex\sources\install.wim
     $index = Read-Host "Please enter the image index"
 }
 Write-Output "Mounting Windows image. This may take a while."
-$wimFilePath = "$ScratchDisk\tiny11\sources\install.wim"
+$wimFilePath = "$ScratchDisk\WinAurex\sources\install.wim"
 & takeown "/F" $wimFilePath
 & icacls $wimFilePath "/grant" "$($adminGroup.Value):(F)"
 try {
@@ -162,7 +162,7 @@ try {
 	Write-Error "$wimFilePath not found"
 }
 New-Item -ItemType Directory -Force -Path "$ScratchDisk\scratchdir" > $null
-Mount-WindowsImage -ImagePath $ScratchDisk\tiny11\sources\install.wim -Index $index -Path $ScratchDisk\scratchdir
+Mount-WindowsImage -ImagePath $ScratchDisk\WinAurex\sources\install.wim -Index $index -Path $ScratchDisk\scratchdir
 
 $imageIntl = & dism /English /Get-Intl "/Image:$($ScratchDisk)\scratchdir"
 $languageLine = $imageIntl -split '\n' | Where-Object { $_ -match 'Default system UI language : ([a-zA-Z]{2}-[a-zA-Z]{2})' }
@@ -174,7 +174,7 @@ if ($languageLine) {
     Write-Output "Default system UI language code not found."
 }
 
-$imageInfo = & 'dism' '/English' '/Get-WimInfo' "/wimFile:$($ScratchDisk)\tiny11\sources\install.wim" "/index:$index"
+$imageInfo = & 'dism' '/English' '/Get-WimInfo' "/wimFile:$($ScratchDisk)\WinAurex\sources\install.wim" "/index:$index"
 $lines = $imageInfo -split '\r?\n'
 
 foreach ($line in $lines) {
@@ -393,18 +393,18 @@ Write-Output ' '
 Write-Output "Unmounting image..."
 Dismount-WindowsImage -Path $ScratchDisk\scratchdir -Save
 Write-Host "Exporting image..."
-Dism.exe /Export-Image /SourceImageFile:"$ScratchDisk\tiny11\sources\install.wim" /SourceIndex:$index /DestinationImageFile:"$ScratchDisk\tiny11\sources\install2.wim" /Compress:recovery
-Remove-Item -Path "$ScratchDisk\tiny11\sources\install.wim" -Force | Out-Null
-Rename-Item -Path "$ScratchDisk\tiny11\sources\install2.wim" -NewName "install.wim" | Out-Null
+Dism.exe /Export-Image /SourceImageFile:"$ScratchDisk\WinAurex\sources\install.wim" /SourceIndex:$index /DestinationImageFile:"$ScratchDisk\WinAurex\sources\install2.wim" /Compress:recovery
+Remove-Item -Path "$ScratchDisk\WinAurex\sources\install.wim" -Force | Out-Null
+Rename-Item -Path "$ScratchDisk\WinAurex\sources\install2.wim" -NewName "install.wim" | Out-Null
 Write-Output "Windows image completed. Continuing with boot.wim."
 Start-Sleep -Seconds 2
 Clear-Host
 Write-Output "Mounting boot image:"
-$wimFilePath = "$ScratchDisk\tiny11\sources\boot.wim"
+$wimFilePath = "$ScratchDisk\WinAurex\sources\boot.wim"
 & takeown "/F" $wimFilePath | Out-Null
 & icacls $wimFilePath "/grant" "$($adminGroup.Value):(F)"
 Set-ItemProperty -Path $wimFilePath -Name IsReadOnly -Value $false
-Mount-WindowsImage -ImagePath $ScratchDisk\tiny11\sources\boot.wim -Index 2 -Path $ScratchDisk\scratchdir
+Mount-WindowsImage -ImagePath $ScratchDisk\WinAurex\sources\boot.wim -Index 2 -Path $ScratchDisk\scratchdir
 Write-Output "Loading registry..."
 reg load HKLM\zCOMPONENTS $ScratchDisk\scratchdir\Windows\System32\config\COMPONENTS
 reg load HKLM\zDEFAULT $ScratchDisk\scratchdir\Windows\System32\config\default
@@ -435,9 +435,9 @@ reg unload HKLM\zSYSTEM | Out-Null
 Write-Output "Unmounting image..."
 Dismount-WindowsImage -Path $ScratchDisk\scratchdir -Save
 Clear-Host
-Write-Output "The tiny11 image is now completed. Proceeding with the making of the ISO..."
+Write-Output "The WinAurex image is now completed. Proceeding with the making of the ISO..."
 Write-Output "Copying unattended file for bypassing MS account on OOBE..."
-Copy-Item -Path "$PSScriptRoot\autounattend.xml" -Destination "$ScratchDisk\tiny11\autounattend.xml" -Force | Out-Null
+Copy-Item -Path "$PSScriptRoot\autounattend.xml" -Destination "$ScratchDisk\WinAurex\autounattend.xml" -Force | Out-Null
 Write-Output "Creating ISO image..."
 $ADKDepTools = "C:\Program Files (x86)\Windows Kits\10\Assessment and Deployment Kit\Deployment Tools\$hostarchitecture\Oscdimg"
 $localOSCDIMGPath = "$PSScriptRoot\oscdimg.exe"
@@ -466,13 +466,13 @@ if ([System.IO.Directory]::Exists($ADKDepTools)) {
     $OSCDIMG = $localOSCDIMGPath
 }
 
-& "$OSCDIMG" '-m' '-o' '-u2' '-udfver102' "-bootdata:2#p0,e,b$ScratchDisk\tiny11\boot\etfsboot.com#pEF,e,b$ScratchDisk\tiny11\efi\microsoft\boot\efisys.bin" "$ScratchDisk\tiny11" "$PSScriptRoot\tiny11.iso"
+& "$OSCDIMG" '-m' '-o' '-u2' '-udfver102' "-bootdata:2#p0,e,b$ScratchDisk\WinAurex\boot\etfsboot.com#pEF,e,b$ScratchDisk\WinAurex\efi\microsoft\boot\efisys.bin" "$ScratchDisk\WinAurex" "$PSScriptRoot\WinAurex.iso"
 
 # Finishing up
 Write-Output "Creation completed! Press any key to exit the script..."
 Read-Host "Press Enter to continue"
 Write-Output "Performing Cleanup..."
-Remove-Item -Path "$ScratchDisk\tiny11" -Recurse -Force | Out-Null
+Remove-Item -Path "$ScratchDisk\WinAurex" -Recurse -Force | Out-Null
 Remove-Item -Path "$ScratchDisk\scratchdir" -Recurse -Force | Out-Null
 Write-Output "Ejecting Iso drive"
 Get-Volume -DriveLetter $DriveLetter[0] | Get-DiskImage | Dismount-DiskImage
@@ -483,16 +483,16 @@ Write-Output "Removing autounattend.xml..."
 Remove-Item -Path "$PSScriptRoot\autounattend.xml" -Force -ErrorAction SilentlyContinue
 
 Write-Output "Cleanup check :"
-if (Test-Path -Path "$ScratchDisk\tiny11") {
-    Write-Output "tiny11 folder still exists. Attempting to remove it again..."
-    Remove-Item -Path "$ScratchDisk\tiny11" -Recurse -Force -ErrorAction SilentlyContinue
-    if (Test-Path -Path "$ScratchDisk\tiny11") {
-        Write-Output "Failed to remove tiny11 folder."
+if (Test-Path -Path "$ScratchDisk\WinAurex") {
+    Write-Output "WinAurex folder still exists. Attempting to remove it again..."
+    Remove-Item -Path "$ScratchDisk\WinAurex" -Recurse -Force -ErrorAction SilentlyContinue
+    if (Test-Path -Path "$ScratchDisk\WinAurex") {
+        Write-Output "Failed to remove WinAurex folder."
     } else {
-        Write-Output "tiny11 folder removed successfully."
+        Write-Output "WinAurex folder removed successfully."
     }
 } else {
-    Write-Output "tiny11 folder does not exist. No action needed."
+    Write-Output "WinAurex folder does not exist. No action needed."
 }
 if (Test-Path -Path "$ScratchDisk\scratchdir") {
     Write-Output "scratchdir folder still exists. Attempting to remove it again..."
@@ -532,4 +532,5 @@ if (Test-Path -Path "$PSScriptRoot\autounattend.xml") {
 Stop-Transcript
 
 exit
+
 

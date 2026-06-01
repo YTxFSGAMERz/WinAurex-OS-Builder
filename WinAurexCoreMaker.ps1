@@ -17,17 +17,17 @@ $myWindowsPrincipal=new-object System.Security.Principal.WindowsPrincipal($myWin
 $adminRole=[System.Security.Principal.WindowsBuiltInRole]::Administrator
 if (! $myWindowsPrincipal.IsInRole($adminRole))
 {
-    Write-Host "Restarting Tiny11 image creator as admin in a new window, you can close this one."
+    Write-Host "Restarting WinAurex OS Builder as admin in a new window, you can close this one."
     $newProcess = new-object System.Diagnostics.ProcessStartInfo "PowerShell";
     $newProcess.Arguments = $myInvocation.MyCommand.Definition;
     $newProcess.Verb = "runas";
     [System.Diagnostics.Process]::Start($newProcess);
     exit
 }
-Start-Transcript -Path "$PSScriptRoot\tiny11.log" 
+Start-Transcript -Path "$PSScriptRoot\WinAurex.log" 
 # Ask the user for input
-Write-Host "Welcome to tiny11 core builder! BETA 09-05-25"
-Write-Host "This script generates a significantly reduced Windows 11 image. However, it's not suitable for regular use due to its lack of serviceability - you can't add languages, updates, or features post-creation. tiny11 Core is not a full Windows 11 substitute but a rapid testing or development tool, potentially useful for VM environments."
+Write-Host "Welcome to WinAurex Core builder! BETA 09-05-25"
+Write-Host "This script generates a significantly reduced Windows 11 image. However, it's not suitable for regular use due to its lack of serviceability - you can't add languages, updates, or features post-creation. WinAurex Core is not a full Windows 11 substitute but a rapid testing or development tool, potentially useful for VM environments."
 Write-Host "Do you want to continue? (y/n)"
 $input = Read-Host
 
@@ -38,7 +38,7 @@ Clear-Host
 
 $mainOSDrive = $env:SystemDrive
 $hostArchitecture = $Env:PROCESSOR_ARCHITECTURE
-New-Item -ItemType Directory -Force -Path "$mainOSDrive\tiny11\sources" >null
+New-Item -ItemType Directory -Force -Path "$mainOSDrive\WinAurex\sources" >null
 $DriveLetter = Read-Host "Please enter the drive letter for the Windows 11 image"
 $DriveLetter = $DriveLetter + ":"
 
@@ -49,7 +49,7 @@ if ((Test-Path "$DriveLetter\sources\boot.wim") -eq $false -or (Test-Path "$Driv
         $index = Read-Host "Please enter the image index"
         Write-Host ' '
         Write-Host 'Converting install.esd to install.wim. This may take a while...'
-        & 'DISM' /Export-Image /SourceImageFile:"$DriveLetter\sources\install.esd" /SourceIndex:$index /DestinationImageFile:"$mainOSDrive\tiny11\sources\install.wim" /Compress:max /CheckIntegrity
+        & 'DISM' /Export-Image /SourceImageFile:"$DriveLetter\sources\install.esd" /SourceIndex:$index /DestinationImageFile:"$mainOSDrive\WinAurex\sources\install.wim" /Compress:max /CheckIntegrity
     } else {
         Write-Host "Can't find Windows OS Installation files in the specified Drive Letter.."
         Write-Host "Please enter the correct DVD Drive Letter.."
@@ -58,17 +58,17 @@ if ((Test-Path "$DriveLetter\sources\boot.wim") -eq $false -or (Test-Path "$Driv
 }
 
 Write-Host "Copying Windows image..."
-Copy-Item -Path "$DriveLetter\*" -Destination "$mainOSDrive\tiny11" -Recurse -Force > null
-Set-ItemProperty -Path "$mainOSDrive\tiny11\sources\install.esd" -Name IsReadOnly -Value $false > $null 2>&1
-Remove-Item "$mainOSDrive\tiny11\sources\install.esd" > $null 2>&1
+Copy-Item -Path "$DriveLetter\*" -Destination "$mainOSDrive\WinAurex" -Recurse -Force > null
+Set-ItemProperty -Path "$mainOSDrive\WinAurex\sources\install.esd" -Name IsReadOnly -Value $false > $null 2>&1
+Remove-Item "$mainOSDrive\WinAurex\sources\install.esd" > $null 2>&1
 Write-Host "Copy complete!"
 Start-Sleep -Seconds 2
 Clear-Host
 Write-Host "Getting image information:"
-&  'dism' '/English' "/Get-WimInfo" "/wimfile:$mainOSDrive\tiny11\sources\install.wim"
+&  'dism' '/English' "/Get-WimInfo" "/wimfile:$mainOSDrive\WinAurex\sources\install.wim"
 $index = Read-Host "Please enter the image index"
 Write-Host "Mounting Windows image. This may take a while."
-$wimFilePath = "$($env:SystemDrive)\tiny11\sources\install.wim" 
+$wimFilePath = "$($env:SystemDrive)\WinAurex\sources\install.wim" 
 & takeown "/F" $wimFilePath 
 & icacls $wimFilePath "/grant" "$($adminGroup.Value):(F)"
 try {
@@ -77,7 +77,7 @@ try {
     # This block will catch the error and suppress it.
 }
 New-Item -ItemType Directory -Force -Path "$mainOSDrive\scratchdir" > $null
-& dism /English "/mount-image" "/imagefile:$($env:SystemDrive)\tiny11\sources\install.wim" "/index:$index" "/mountdir:$($env:SystemDrive)\scratchdir"
+& dism /English "/mount-image" "/imagefile:$($env:SystemDrive)\WinAurex\sources\install.wim" "/index:$index" "/mountdir:$($env:SystemDrive)\scratchdir"
 
 $imageIntl = & dism /English /Get-Intl "/Image:$($env:SystemDrive)\scratchdir"
 $languageLine = $imageIntl -split '\n' | Where-Object { $_ -match 'Default system UI language : ([a-zA-Z]{2}-[a-zA-Z]{2})' }
@@ -89,7 +89,7 @@ if ($languageLine) {
     Write-Host "Default system UI language code not found."
 }
 
-$imageInfo = & 'dism' '/English' '/Get-WimInfo' "/wimFile:$($env:SystemDrive)\tiny11\sources\install.wim" "/index:$index"
+$imageInfo = & 'dism' '/English' '/Get-WimInfo' "/wimFile:$($env:SystemDrive)\WinAurex\sources\install.wim" "/index:$index"
 $lines = $imageInfo -split '\r?\n'
 
 foreach ($line in $lines) {
@@ -173,7 +173,7 @@ $input = Read-Host
 
 if ($input -eq 'y') {
     Write-Host "Enabling .NET 3.5..."
-    & 'dism'  "/image:$scratchDir" '/enable-feature' '/featurename:NetFX3' '/All' "/source:$($env:SystemDrive)\tiny11\sources\sxs" 
+    & 'dism'  "/image:$scratchDir" '/enable-feature' '/featurename:NetFX3' '/All' "/source:$($env:SystemDrive)\WinAurex\sources\sxs" 
     Write-Host ".NET 3.5 has been enabled."
 }
 elseif ($input -eq 'n') {
@@ -489,18 +489,18 @@ Write-Host ' '
 Write-Host "Unmounting image..."
 & 'dism' '/English' '/unmount-image' "/mountdir:$mainOSDrive\scratchdir" '/commit'
 Write-Host "Exporting image..."
-& 'dism' '/English' '/Export-Image' "/SourceImageFile:$mainOSDrive\tiny11\sources\install.wim" "/SourceIndex:$index" "/DestinationImageFile:$mainOSDrive\tiny11\sources\install2.wim" '/compress:max'
-Remove-Item -Path "$mainOSDrive\tiny11\sources\install.wim" -Force >null
-Rename-Item -Path "$mainOSDrive\tiny11\sources\install2.wim" -NewName "install.wim" >null
+& 'dism' '/English' '/Export-Image' "/SourceImageFile:$mainOSDrive\WinAurex\sources\install.wim" "/SourceIndex:$index" "/DestinationImageFile:$mainOSDrive\WinAurex\sources\install2.wim" '/compress:max'
+Remove-Item -Path "$mainOSDrive\WinAurex\sources\install.wim" -Force >null
+Rename-Item -Path "$mainOSDrive\WinAurex\sources\install2.wim" -NewName "install.wim" >null
 Write-Host "Windows image completed. Continuing with boot.wim."
 Start-Sleep -Seconds 2
 Clear-Host
 Write-Host "Mounting boot image:"
-$wimFilePath = "$($env:SystemDrive)\tiny11\sources\boot.wim" 
+$wimFilePath = "$($env:SystemDrive)\WinAurex\sources\boot.wim" 
 & takeown "/F" $wimFilePath >null
 & icacls $wimFilePath "/grant" "$($adminGroup.Value):(F)"
 Set-ItemProperty -Path $wimFilePath -Name IsReadOnly -Value $false
-& 'dism' '/English' '/mount-image' "/imagefile:$mainOSDrive\tiny11\sources\boot.wim" '/index:2' "/mountdir:$mainOSDrive\scratchdir"
+& 'dism' '/English' '/mount-image' "/imagefile:$mainOSDrive\WinAurex\sources\boot.wim" '/index:2' "/mountdir:$mainOSDrive\scratchdir"
 Write-Host "Loading registry..."
 reg load HKLM\zCOMPONENTS $mainOSDrive\scratchdir\Windows\System32\config\COMPONENTS
 reg load HKLM\zDEFAULT $mainOSDrive\scratchdir\Windows\System32\config\default
@@ -530,9 +530,9 @@ Write-Host "Unmounting image..."
 & 'dism' '/English' '/unmount-image' "/mountdir:$mainOSDrive\scratchdir" '/commit'
 Clear-Host
 Write-Host "Exporting ESD. This may take a while..."
-& dism /Export-Image /SourceImageFile:"$mainOSDrive\tiny11\sources\install.wim" /SourceIndex:1 /DestinationImageFile:"$mainOSDrive\tiny11\sources\install.esd" /Compress:recovery
-Remove-Item "$mainOSDrive\tiny11\sources\install.wim" > $null 2>&1
-Write-Host "The tiny11 image is now completed. Proceeding with the making of the ISO..."
+& dism /Export-Image /SourceImageFile:"$mainOSDrive\WinAurex\sources\install.wim" /SourceIndex:1 /DestinationImageFile:"$mainOSDrive\WinAurex\sources\install.esd" /Compress:recovery
+Remove-Item "$mainOSDrive\WinAurex\sources\install.wim" > $null 2>&1
+Write-Host "The WinAurex image is now completed. Proceeding with the making of the ISO..."
 Write-Host "Creating ISO image..."
 $ADKDepTools = "C:\Program Files (x86)\Windows Kits\10\Assessment and Deployment Kit\Deployment Tools\$hostarchitecture\Oscdimg"
 $localOSCDIMGPath = "$PSScriptRoot\oscdimg.exe"
@@ -563,13 +563,13 @@ if ([System.IO.Directory]::Exists($ADKDepTools)) {
     $OSCDIMG = $localOSCDIMGPath
 }
 
-& "$OSCDIMG" '-m' '-o' '-u2' '-udfver102' "-bootdata:2#p0,e,b$ScratchDisk\tiny11\boot\etfsboot.com#pEF,e,b$ScratchDisk\tiny11\efi\microsoft\boot\efisys.bin" "$ScratchDisk\tiny11" "$PSScriptRoot\tiny11.iso"
+& "$OSCDIMG" '-m' '-o' '-u2' '-udfver102' "-bootdata:2#p0,e,b$ScratchDisk\WinAurex\boot\etfsboot.com#pEF,e,b$ScratchDisk\WinAurex\efi\microsoft\boot\efisys.bin" "$ScratchDisk\WinAurex" "$PSScriptRoot\WinAurex.iso"
 
 # Finishing up
 Write-Host "Creation completed! Press any key to exit the script..."
 Read-Host "Press Enter to continue"
 Write-Host "Performing Cleanup..."
-Remove-Item -Path "$mainOSDrive\tiny11" -Recurse -Force >null
+Remove-Item -Path "$mainOSDrive\WinAurex" -Recurse -Force >null
 Remove-Item -Path "$mainOSDrive\scratchdir" -Recurse -Force >null
 
 # Stop the transcript
@@ -584,3 +584,4 @@ elseif ($input -eq 'n') {
 else {
     Write-Host "Invalid input. Please enter 'y' to continue or 'n' to exit."
 }
+

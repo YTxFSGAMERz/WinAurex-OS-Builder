@@ -23,3 +23,4 @@ if ($architecture -eq 'amd64') {
         Write-Host "Folder not found."
     }
 }
+
