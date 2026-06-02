@@ -89,25 +89,6 @@ Instead of relying on third-party blackbox tools, it leverages native Microsoft 
 <!-- ═══ ANIMATED DIVIDER ═══ -->
 <img src="https://user-images.githubusercontent.com/73097560/115834477-dbab4500-a447-11eb-908a-139a6edaec5c.gif" width="100%">
 
-<h2 align="center">⬛ REPOSITORY STRUCTURE</h2>
-
-<div align="center">
-
-```text
-📦 WinAurex-OS-Builder
- ┣ 📜 WinAurexMaker.ps1         # Primary Image Builder & Debloat Script
- ┣ 📜 WinAurexCoreMaker.ps1     # Core Image Compiler (Alternative config)
- ┣ 📜 WinAurexCoreMaker_auto.ps1# Fully automated, zero-touch compiler
- ┣ 📜 patch.ps1                 # Rapid image patching utility
- ┣ 📜 autounattend.xml          # OOBE Automation (Local Account, Privacy)
- ┗ 🛠️ oscdimg.exe               # Windows ADK Tool for generating bootable ISOs
-```
-
-</div>
-
-<!-- ═══ ANIMATED DIVIDER ═══ -->
-<img src="https://user-images.githubusercontent.com/73097560/115834477-dbab4500-a447-11eb-908a-139a6edaec5c.gif" width="100%">
-
 <h2 align="center">⬛ DEPLOYMENT INSTRUCTIONS</h2>
 
 <div align="center">
