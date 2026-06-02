@@ -64,10 +64,6 @@ Instead of relying on third-party blackbox tools, it leverages native Microsoft 
 
 <h2 align="center">⬛ CORE CAPABILITIES</h2>
 
-<details>
-<summary><b>📡 [ CLICK TO ACCESS CAPABILITY MATRIX ]</b></summary>
-<br>
-
 ### 🛡️ Hardware & Requirement Bypasses
 * **TPM 2.0 & Secure Boot:** Bypassed natively during the WinPE setup phase.
 * **CPU & RAM Restrictions:** Removes the hard lock for older hardware.
@@ -83,8 +79,6 @@ Instead of relying on third-party blackbox tools, it leverages native Microsoft 
 * Injecting registry hives offline to disable telemetry collection.
 * Turns off Sponsored Apps and Content Delivery Manager.
 * Disables Advertising IDs and Cloud Content optimization.
-
-</details>
 
 <!-- ═══ ANIMATED DIVIDER ═══ -->
 <img src="https://user-images.githubusercontent.com/73097560/115834477-dbab4500-a447-11eb-908a-139a6edaec5c.gif" width="100%">
