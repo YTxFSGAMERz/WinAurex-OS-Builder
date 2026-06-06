@@ -369,168 +369,310 @@ foreach( $file in $Document.unattend.Extensions.File ) {
 }
     </ExtractScript>
     <File path="C:\Windows\Setup\Scripts\MegaTweaks.ps1">
+
 # =====================================================================
 # THE 1000+ TWEAK MEGA-DEBLOAT SCRIPT
 # =====================================================================
 
 # 1. TOTAL APPX ANNIHILATION
 $selectors = @(
-	'Microsoft.Microsoft3DViewer','Microsoft.BingSearch','Microsoft.WindowsCalculator','Microsoft.WindowsCamera',
-	'Clipchamp.Clipchamp','Microsoft.WindowsAlarms','Microsoft.Copilot','Microsoft.549981C3F5F10',
-	'Microsoft.Windows.DevHome','MicrosoftCorporationII.MicrosoftFamily','Microsoft.WindowsFeedbackHub',
-	'Microsoft.Edge.GameAssist','Microsoft.GetHelp','Microsoft.Getstarted','microsoft.windowscommunicationsapps',
-	'Microsoft.WindowsMaps','Microsoft.MixedReality.Portal','Microsoft.BingNews','Microsoft.WindowsNotepad',
-	'Microsoft.MicrosoftOfficeHub','Microsoft.Office.OneNote','Microsoft.OutlookForWindows','Microsoft.Paint',
-	'Microsoft.MSPaint','Microsoft.People','Microsoft.Windows.Photos','Microsoft.PowerAutomateDesktop',
-	'MicrosoftCorporationII.QuickAssist','Microsoft.SkypeApp','Microsoft.MicrosoftSolitaireCollection',
-	'Microsoft.MicrosoftStickyNotes','MicrosoftTeams','MSTeams','Microsoft.Todos','Microsoft.WindowsSoundRecorder',
-	'Microsoft.Wallet','Microsoft.BingWeather','Microsoft.Xbox.TCUI','Microsoft.XboxApp','Microsoft.XboxGameOverlay',
-	'Microsoft.XboxGamingOverlay','Microsoft.XboxIdentityProvider','Microsoft.XboxSpeechToTextOverlay',
-	'Microsoft.GamingApp','Microsoft.YourPhone','Microsoft.ZuneMusic','Microsoft.ZuneVideo',
-    'Microsoft.SecHealthUI','Microsoft.WindowsStore','Microsoft.Copilot_8wekyb3d8bbwe',
-    'Microsoft.BingSports','Microsoft.BingFinance','Microsoft.CommsPhone','Microsoft.Messaging'
+	&apos;Microsoft.Microsoft3DViewer&apos;,&apos;Microsoft.BingSearch&apos;,&apos;Microsoft.WindowsCalculator&apos;,&apos;Microsoft.WindowsCamera&apos;,
+	&apos;Clipchamp.Clipchamp&apos;,&apos;Microsoft.WindowsAlarms&apos;,&apos;Microsoft.Copilot&apos;,&apos;Microsoft.549981C3F5F10&apos;,
+	&apos;Microsoft.Windows.DevHome&apos;,&apos;MicrosoftCorporationII.MicrosoftFamily&apos;,&apos;Microsoft.WindowsFeedbackHub&apos;,
+	&apos;Microsoft.Edge.GameAssist&apos;,&apos;Microsoft.GetHelp&apos;,&apos;Microsoft.Getstarted&apos;,&apos;microsoft.windowscommunicationsapps&apos;,
+	&apos;Microsoft.WindowsMaps&apos;,&apos;Microsoft.MixedReality.Portal&apos;,&apos;Microsoft.BingNews&apos;,&apos;Microsoft.WindowsNotepad&apos;,
+	&apos;Microsoft.MicrosoftOfficeHub&apos;,&apos;Microsoft.Office.OneNote&apos;,&apos;Microsoft.OutlookForWindows&apos;,&apos;Microsoft.Paint&apos;,
+	&apos;Microsoft.MSPaint&apos;,&apos;Microsoft.People&apos;,&apos;Microsoft.Windows.Photos&apos;,&apos;Microsoft.PowerAutomateDesktop&apos;,
+	&apos;MicrosoftCorporationII.QuickAssist&apos;,&apos;Microsoft.SkypeApp&apos;,&apos;Microsoft.MicrosoftSolitaireCollection&apos;,
+	&apos;Microsoft.MicrosoftStickyNotes&apos;,&apos;MicrosoftTeams&apos;,&apos;MSTeams&apos;,&apos;Microsoft.Todos&apos;,&apos;Microsoft.WindowsSoundRecorder&apos;,
+	&apos;Microsoft.Wallet&apos;,&apos;Microsoft.BingWeather&apos;,&apos;Microsoft.Xbox.TCUI&apos;,&apos;Microsoft.XboxApp&apos;,&apos;Microsoft.XboxGameOverlay&apos;,
+	&apos;Microsoft.XboxGamingOverlay&apos;,&apos;Microsoft.XboxIdentityProvider&apos;,&apos;Microsoft.XboxSpeechToTextOverlay&apos;,
+	&apos;Microsoft.GamingApp&apos;,&apos;Microsoft.YourPhone&apos;,&apos;Microsoft.ZuneMusic&apos;,&apos;Microsoft.ZuneVideo&apos;,
+    &apos;Microsoft.SecHealthUI&apos;,&apos;Microsoft.WindowsStore&apos;,&apos;Microsoft.Copilot_8wekyb3d8bbwe&apos;,
+    &apos;Microsoft.BingSports&apos;,&apos;Microsoft.BingFinance&apos;,&apos;Microsoft.CommsPhone&apos;,&apos;Microsoft.Messaging&apos;,&apos;Microsoft.ScreenSketch&apos;,&apos;Microsoft.DesktopAppInstaller&apos;,&apos;Microsoft.WindowsTerminal&apos;,&apos;Microsoft.Windows.Backup&apos;
 );
 $getAppx = { Get-AppxProvisionedPackage -Online };
 $appxs = &amp; $getAppx;
 foreach( $selector in $selectors ) {
     $found = $appxs | Where-Object -FilterScript { $_.DisplayName -eq $selector }
-    if( $found ) { $found | Remove-AppxProvisionedPackage -AllUsers -Online -ErrorAction 'Continue' }
+    if( $found ) { $found | Remove-AppxProvisionedPackage -AllUsers -Online -ErrorAction &apos;Continue&apos; }
 }
 
 # 2. CAPABILITY ANNIHILATION
-$caps = @('Print.Fax.Scan','Language.Handwriting','Browser.InternetExplorer','MathRecognizer','OneCoreUAP.OneSync',
-'Microsoft.Windows.MSPaint','Microsoft.Windows.PowerShell.ISE','App.Support.QuickAssist','Language.Speech',
-'Language.TextToSpeech','App.StepsRecorder','Media.WindowsMediaPlayer','Microsoft.Windows.WordPad');
-$getCap = { Get-WindowsCapability -Online | Where-Object -Property 'State' -NotIn -Value @('NotPresent', 'Removed') };
+$caps = @(&apos;Print.Fax.Scan&apos;,&apos;Language.Handwriting&apos;,&apos;Browser.InternetExplorer&apos;,&apos;MathRecognizer&apos;,&apos;OneCoreUAP.OneSync&apos;,
+&apos;Microsoft.Windows.MSPaint&apos;,&apos;Microsoft.Windows.PowerShell.ISE&apos;,&apos;App.Support.QuickAssist&apos;,&apos;Language.Speech&apos;,
+&apos;Language.TextToSpeech&apos;,&apos;App.StepsRecorder&apos;,&apos;Media.WindowsMediaPlayer&apos;,&apos;Microsoft.Windows.WordPad&apos;);
+$getCap = { Get-WindowsCapability -Online | Where-Object -Property &apos;State&apos; -NotIn -Value @(&apos;NotPresent&apos;, &apos;Removed&apos;) };
 $capabilities = &amp; $getCap;
 foreach( $selector in $caps ) {
-    $found = $capabilities | Where-Object -FilterScript { ($_.Name -split '~')[0] -eq $selector }
-    if( $found ) { $found | Remove-WindowsCapability -Online -ErrorAction 'Continue' }
+    $found = $capabilities | Where-Object -FilterScript { ($_.Name -split &apos;~&apos;)[0] -eq $selector }
+    if( $found ) { $found | Remove-WindowsCapability -Online -ErrorAction &apos;Continue&apos; }
 }
 
 # 3. FEATURE ANNIHILATION
-$feats = @('MediaPlayback','Microsoft-RemoteDesktopConnection','Recall');
-$getFeat = { Get-WindowsOptionalFeature -Online | Where-Object -Property 'State' -NotIn -Value @('Disabled', 'DisabledWithPayloadRemoved') };
+$feats = @(&apos;MediaPlayback&apos;,&apos;Microsoft-RemoteDesktopConnection&apos;,&apos;Recall&apos;);
+$getFeat = { Get-WindowsOptionalFeature -Online | Where-Object -Property &apos;State&apos; -NotIn -Value @(&apos;Disabled&apos;, &apos;DisabledWithPayloadRemoved&apos;) };
 $features = &amp; $getFeat;
 foreach( $selector in $feats ) {
     $found = $features | Where-Object -FilterScript { $_.FeatureName -eq $selector }
-    if( $found ) { $found | Disable-WindowsOptionalFeature -Online -Remove -NoRestart -ErrorAction 'Continue' }
+    if( $found ) { $found | Disable-WindowsOptionalFeature -Online -Remove -NoRestart -ErrorAction &apos;Continue&apos; }
 }
 
 # 4. MASSIVE SERVICE DISABLEMENT (The core 1GB RAM secret)
 $servicesToKill = @(
-    "wuauserv", "WSearch", "SysMain", "DiagTrack", "WerSvc", "wscsvc", "BITS", "DusmSvc", "PcaSvc", "TrkWks", "lfsvc",
-    "WbioSrvc", "stisvc", "TabletInputService", "InstallService", "XblAuthManager", "XblGameSave", "XboxNetApiSvc",
-    "MapsBroker", "edgeupdate", "WpnService", "SgrmBroker", "DPS", "WdiServiceHost", "WdiSystemHost", "FontCache",
-    "Spooler", "WaaSMedicSvc", "DoSvc", "BcastDVRUserService", "CDPSvc", "CDPUserSvc", "WpnUserService", "OneSyncSvc",
-    "MessagingService", "PhoneSvc", "fhsvc", "NcbService", "Ndu", "wlidsvc", "dmwappushservice", "diagnosticshub.standardcollector.service",
-    "WMPNetworkSvc", "VSS", "defragsvc", "fdPHost", "FDResPub", "lmhosts", "RemoteRegistry", "SensrSvc", "SharedAccess",
-    "SSDPSRV", "upnphost", "WpcCoverage", "XboxGipSvc", "xbgm", "RetailDemo", "AJRouter", "AppVClient", "BthAvctpSvc",
-    "bthserv", "camsvc", "CertPropSvc", "ClipSVC", "CscService", "Diagsvc", "DisplayEnhancementService", "DsSvc",
-    "EFS", "EntAppSvc", "GraphicsPerfSvc", "IKEEXT", "iphlpsvc", "irmon", "LicenseManager", "lltdsvc", "LxpSvc",
-    "NetTcpPortSharing", "Netlogon", "NfsClnt", "NvTelemetryContainer", "Osrss", "PNRPAutoReg", "PNRPsvc", "p2psvc",
-    "p2pimsvc", "PerfHost", "pla", "PNRPAutoReg", "PrintNotify", "PushToInstall", "QWAVE", "RmSvc", "RemoteAccess",
-    "RpcLocator", "SCardSvr", "ScDeviceEnum", "SCPolicySvc", "SDRSVC", "seclcl", "shpamsvc", "smphost", "SmsRouter",
-    "SNMPTRAP", "Spectrum", "stisvc", "svsvc", "swprv", "SysMain", "TapiSrv", "TieringEngine", "TokenBroker", "TrkWks",
-    "tzautoupdate", "UevAgentService", "UmRdpService", "upnphost", "vds", "vmicguestinterface", "vmicheartbeat",
-    "vmickvpexchange", "vmicrdv", "vmicshutdown", "vmictimesync", "vmicvmsession", "vmicvss", "WalletService", "WarpJITSvc",
-    "wbengine", "WbioSrvc", "wcncsvc", "WcsPlugInService", "WdiServiceHost", "WdiSystemHost", "wercplsupport", "WerSvc",
-    "WiaRpc", "WinRM", "WpcCoverage", "WpnService", "WpnUserService", "wscsvc", "WSearch", "XboxGipSvc", "XboxNetApiSvc"
+    &quot;wuauserv&quot;, &quot;WSearch&quot;, &quot;SysMain&quot;, &quot;DiagTrack&quot;, &quot;WerSvc&quot;, &quot;wscsvc&quot;, &quot;BITS&quot;, &quot;DusmSvc&quot;, &quot;PcaSvc&quot;, &quot;TrkWks&quot;, &quot;lfsvc&quot;,
+    &quot;WbioSrvc&quot;, &quot;stisvc&quot;, &quot;TabletInputService&quot;, &quot;InstallService&quot;, &quot;XblAuthManager&quot;, &quot;XblGameSave&quot;, &quot;XboxNetApiSvc&quot;,
+    &quot;MapsBroker&quot;, &quot;edgeupdate&quot;, &quot;WpnService&quot;, &quot;SgrmBroker&quot;, &quot;DPS&quot;, &quot;WdiServiceHost&quot;, &quot;WdiSystemHost&quot;, &quot;FontCache&quot;,
+    &quot;Spooler&quot;, &quot;WaaSMedicSvc&quot;, &quot;DoSvc&quot;, &quot;BcastDVRUserService&quot;, &quot;CDPSvc&quot;, &quot;CDPUserSvc&quot;, &quot;WpnUserService&quot;, &quot;OneSyncSvc&quot;,
+    &quot;MessagingService&quot;, &quot;PhoneSvc&quot;, &quot;fhsvc&quot;, &quot;NcbService&quot;, &quot;Ndu&quot;, &quot;wlidsvc&quot;, &quot;dmwappushservice&quot;, &quot;diagnosticshub.standardcollector.service&quot;,
+    &quot;WMPNetworkSvc&quot;, &quot;VSS&quot;, &quot;defragsvc&quot;, &quot;fdPHost&quot;, &quot;FDResPub&quot;, &quot;lmhosts&quot;, &quot;RemoteRegistry&quot;, &quot;SensrSvc&quot;, &quot;SharedAccess&quot;,
+    &quot;SSDPSRV&quot;, &quot;upnphost&quot;, &quot;WpcCoverage&quot;, &quot;XboxGipSvc&quot;, &quot;xbgm&quot;, &quot;RetailDemo&quot;, &quot;AJRouter&quot;, &quot;AppVClient&quot;, &quot;BthAvctpSvc&quot;,
+    &quot;bthserv&quot;, &quot;camsvc&quot;, &quot;CertPropSvc&quot;, &quot;ClipSVC&quot;, &quot;CscService&quot;, &quot;Diagsvc&quot;, &quot;DisplayEnhancementService&quot;, &quot;DsSvc&quot;,
+    &quot;EFS&quot;, &quot;EntAppSvc&quot;, &quot;GraphicsPerfSvc&quot;, &quot;IKEEXT&quot;, &quot;iphlpsvc&quot;, &quot;irmon&quot;, &quot;LicenseManager&quot;, &quot;lltdsvc&quot;, &quot;LxpSvc&quot;,
+    &quot;NetTcpPortSharing&quot;, &quot;Netlogon&quot;, &quot;NfsClnt&quot;, &quot;NvTelemetryContainer&quot;, &quot;Osrss&quot;, &quot;PNRPAutoReg&quot;, &quot;PNRPsvc&quot;, &quot;p2psvc&quot;,
+    &quot;p2pimsvc&quot;, &quot;PerfHost&quot;, &quot;pla&quot;, &quot;PNRPAutoReg&quot;, &quot;PrintNotify&quot;, &quot;PushToInstall&quot;, &quot;QWAVE&quot;, &quot;RmSvc&quot;, &quot;RemoteAccess&quot;,
+    &quot;RpcLocator&quot;, &quot;SCardSvr&quot;, &quot;ScDeviceEnum&quot;, &quot;SCPolicySvc&quot;, &quot;SDRSVC&quot;, &quot;seclcl&quot;, &quot;shpamsvc&quot;, &quot;smphost&quot;, &quot;SmsRouter&quot;,
+    &quot;SNMPTRAP&quot;, &quot;Spectrum&quot;, &quot;stisvc&quot;, &quot;svsvc&quot;, &quot;swprv&quot;, &quot;SysMain&quot;, &quot;TapiSrv&quot;, &quot;TieringEngine&quot;, &quot;TokenBroker&quot;, &quot;TrkWks&quot;,
+    &quot;tzautoupdate&quot;, &quot;UevAgentService&quot;, &quot;UmRdpService&quot;, &quot;upnphost&quot;, &quot;vds&quot;, &quot;vmicguestinterface&quot;, &quot;vmicheartbeat&quot;,
+    &quot;vmickvpexchange&quot;, &quot;vmicrdv&quot;, &quot;vmicshutdown&quot;, &quot;vmictimesync&quot;, &quot;vmicvmsession&quot;, &quot;vmicvss&quot;, &quot;WalletService&quot;, &quot;WarpJITSvc&quot;,
+    &quot;wbengine&quot;, &quot;WbioSrvc&quot;, &quot;wcncsvc&quot;, &quot;WcsPlugInService&quot;, &quot;WdiServiceHost&quot;, &quot;WdiSystemHost&quot;, &quot;wercplsupport&quot;, &quot;WerSvc&quot;,
+    &quot;WiaRpc&quot;, &quot;WinRM&quot;, &quot;WpcCoverage&quot;, &quot;WpnService&quot;, &quot;WpnUserService&quot;, &quot;wscsvc&quot;, &quot;WSearch&quot;, &quot;XboxGipSvc&quot;, &quot;XboxNetApiSvc&quot;
 )
 
 foreach ($svc in $servicesToKill) {
-    Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\$svc" -Name "Start" -Value 4 -ErrorAction SilentlyContinue
+    Set-ItemProperty -Path &quot;HKLM:\SYSTEM\CurrentControlSet\Services\$svc&quot; -Name &quot;Start&quot; -Value 4 -ErrorAction SilentlyContinue
 }
+
+# 4.5. KILL START MENU SHORTCUTS FOR SYSTEM APPS
+Remove-Item -Path &quot;$env:ProgramData\Microsoft\Windows\Start Menu\Programs\Windows Backup.lnk&quot; -Force -ErrorAction SilentlyContinue
+Remove-Item -Path &quot;$env:ProgramData\Microsoft\Windows\Start Menu\Programs\Windows Security.lnk&quot; -Force -ErrorAction SilentlyContinue
+Remove-Item -Path &quot;$env:ProgramData\Microsoft\Windows\Start Menu\Programs\Windows Tools.lnk&quot; -Force -ErrorAction SilentlyContinue
+Remove-Item -Path &quot;$env:ProgramData\Microsoft\Windows\Start Menu\Programs\Get Started.lnk&quot; -Force -ErrorAction SilentlyContinue
 
 # 5. HUNDREDS OF REGISTRY TWEAKS (Visuals, Privacy, Telemetry, Performance)
 $regTweaks = @(
-	{ reg.exe add "HKLM\SYSTEM\Setup\MoSetup" /v AllowUpgradesWithUnsupportedTPMOrCPU /t REG_DWORD /d 1 /f; };
-	{ reg.exe add "HKCR\.txt\ShellNew" /v ItemName /t REG_EXPAND_SZ /d "@C:\Windows\system32\notepad.exe,-470" /f; };
-	{ reg.exe add "HKCR\.txt\ShellNew" /v NullFile /t REG_SZ /f; };
-	{ reg.exe add "HKCR\txtfilelegacy" /v FriendlyTypeName /t REG_EXPAND_SZ /d "@C:\Windows\system32\notepad.exe,-469" /f; };
-	{ reg.exe add "HKCR\txtfilelegacy" /ve /t REG_SZ /d "Text Document" /f; };
-	{ Remove-Item -LiteralPath 'C:\Users\Default\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\OneDrive.lnk', 'C:\Windows\System32\OneDriveSetup.exe', 'C:\Windows\SysWOW64\OneDriveSetup.exe' -ErrorAction 'Continue'; };
-	{ reg.exe add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Communications" /v ConfigureChatAutoInstall /t REG_DWORD /d 0 /f; };
+	{ reg.exe add &quot;HKLM\SYSTEM\Setup\MoSetup&quot; /v AllowUpgradesWithUnsupportedTPMOrCPU /t REG_DWORD /d 1 /f; };
+	{ reg.exe add &quot;HKCR\.txt\ShellNew&quot; /v ItemName /t REG_EXPAND_SZ /d &quot;@C:\Windows\system32\notepad.exe,-470&quot; /f; };
+	{ reg.exe add &quot;HKCR\.txt\ShellNew&quot; /v NullFile /t REG_SZ /f; };
+	{ reg.exe add &quot;HKCR\txtfilelegacy&quot; /v FriendlyTypeName /t REG_EXPAND_SZ /d &quot;@C:\Windows\system32\notepad.exe,-469&quot; /f; };
+	{ reg.exe add &quot;HKCR\txtfilelegacy&quot; /ve /t REG_SZ /d &quot;Text Document&quot; /f; };
+	{ Remove-Item -LiteralPath &apos;C:\Users\Default\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\OneDrive.lnk&apos;, &apos;C:\Windows\System32\OneDriveSetup.exe&apos;, &apos;C:\Windows\SysWOW64\OneDriveSetup.exe&apos; -ErrorAction &apos;Continue&apos;; };
+	{ reg.exe add &quot;HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Communications&quot; /v ConfigureChatAutoInstall /t REG_DWORD /d 0 /f; };
 	{ net.exe accounts /maxpwage:UNLIMITED; };
-	{ reg.exe add "HKLM\SOFTWARE\Policies\Microsoft\Windows Defender Security Center\Notifications" /v DisableNotifications /t REG_DWORD /d 1 /f; };
-	{ reg.exe add "HKLM\SYSTEM\CurrentControlSet\Control\CI\Policy" /v VerifiedAndReputablePolicyState /t REG_DWORD /d 0 /f; };
-	{ reg.exe add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer" /v SmartScreenEnabled /t REG_SZ /d "Off" /f; };
-	{ reg.exe add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\WTDS\Components" /v ServiceEnabled /t REG_DWORD /d 0 /f; };
-	{ reg.exe add "HKLM\SOFTWARE\Policies\Microsoft\Windows Defender Security Center\Systray" /v HideSystray /t REG_DWORD /d 1 /f; };
-	{ reg.exe add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" /v EnableLUA /t REG_DWORD /d 0 /f; };
-	{ Set-ExecutionPolicy -Scope 'LocalMachine' -ExecutionPolicy 'RemoteSigned' -Force; };
+	{ reg.exe add &quot;HKLM\SOFTWARE\Policies\Microsoft\Windows Defender Security Center\Notifications&quot; /v DisableNotifications /t REG_DWORD /d 1 /f; };
+	{ reg.exe add &quot;HKLM\SYSTEM\CurrentControlSet\Control\CI\Policy&quot; /v VerifiedAndReputablePolicyState /t REG_DWORD /d 0 /f; };
+	{ reg.exe add &quot;HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer&quot; /v SmartScreenEnabled /t REG_SZ /d &quot;Off&quot; /f; };
+	{ reg.exe add &quot;HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\WTDS\Components&quot; /v ServiceEnabled /t REG_DWORD /d 0 /f; };
+	{ reg.exe add &quot;HKLM\SOFTWARE\Policies\Microsoft\Windows Defender Security Center\Systray&quot; /v HideSystray /t REG_DWORD /d 1 /f; };
+	{ reg.exe add &quot;HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System&quot; /v EnableLUA /t REG_DWORD /d 0 /f; };
+	{ Set-ExecutionPolicy -Scope &apos;LocalMachine&apos; -ExecutionPolicy &apos;RemoteSigned&apos; -Force; };
 	{ fsutil.exe behavior set disableLastAccess 1; };
-	{ reg.exe add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Power" /v HiberbootEnabled /t REG_DWORD /d 0 /f; };
-	{ reg.exe add "HKLM\SOFTWARE\Policies\Microsoft\Dsh" /v AllowNewsAndInterests /t REG_DWORD /d 0 /f; };
-	{ reg.exe add "HKLM\Software\Policies\Microsoft\Windows\CloudContent" /v "DisableWindowsConsumerFeatures" /t REG_DWORD /d 1 /f; };
-	{ reg.exe add "HKLM\SYSTEM\CurrentControlSet\Control\BitLocker" /v "PreventDeviceEncryption" /t REG_DWORD /d 1 /f; };
-	{ reg.exe add "HKLM\Software\Policies\Microsoft\Edge" /v HideFirstRunExperience /t REG_DWORD /d 1 /f; };
-	{ reg.exe add "HKLM\Software\Policies\Microsoft\Edge\Recommended" /v BackgroundModeEnabled /t REG_DWORD /d 0 /f; };
-	{ reg.exe add "HKLM\Software\Policies\Microsoft\Edge\Recommended" /v StartupBoostEnabled /t REG_DWORD /d 0 /f; };
+	{ reg.exe add &quot;HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Power&quot; /v HiberbootEnabled /t REG_DWORD /d 0 /f; };
+	{ reg.exe add &quot;HKLM\SOFTWARE\Policies\Microsoft\Dsh&quot; /v AllowNewsAndInterests /t REG_DWORD /d 0 /f; };
+	{ reg.exe add &quot;HKLM\Software\Policies\Microsoft\Windows\CloudContent&quot; /v &quot;DisableWindowsConsumerFeatures&quot; /t REG_DWORD /d 1 /f; };
+	{ reg.exe add &quot;HKLM\SYSTEM\CurrentControlSet\Control\BitLocker&quot; /v &quot;PreventDeviceEncryption&quot; /t REG_DWORD /d 1 /f; };
+	{ reg.exe add &quot;HKLM\Software\Policies\Microsoft\Edge&quot; /v HideFirstRunExperience /t REG_DWORD /d 1 /f; };
+	{ reg.exe add &quot;HKLM\Software\Policies\Microsoft\Edge\Recommended&quot; /v BackgroundModeEnabled /t REG_DWORD /d 0 /f; };
+	{ reg.exe add &quot;HKLM\Software\Policies\Microsoft\Edge\Recommended&quot; /v StartupBoostEnabled /t REG_DWORD /d 0 /f; };
+    # --- WINAUREX EXTRA REGISTRY TWEAKS ---
+    { reg.exe load &quot;HKU\DefaultUser&quot; &quot;C:\Users\Default\NTUSER.DAT&quot; | Out-Null; };
+    # UnsupportedHardwareNotificationCache
+    { reg.exe add &quot;HKU\.DEFAULT\Control Panel\UnsupportedHardwareNotificationCache&quot; /v SV1 /t REG_DWORD /d 0 /f | Out-Null; };
+    { reg.exe add &quot;HKU\.DEFAULT\Control Panel\UnsupportedHardwareNotificationCache&quot; /v SV2 /t REG_DWORD /d 0 /f | Out-Null; };
+    { reg.exe add &quot;HKU\DefaultUser\Control Panel\UnsupportedHardwareNotificationCache&quot; /v SV1 /t REG_DWORD /d 0 /f | Out-Null; };
+    { reg.exe add &quot;HKU\DefaultUser\Control Panel\UnsupportedHardwareNotificationCache&quot; /v SV2 /t REG_DWORD /d 0 /f | Out-Null; };
+    # ContentDeliveryManager
+    { reg.exe add &quot;HKU\DefaultUser\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager&quot; /v OemPreInstalledAppsEnabled /t REG_DWORD /d 0 /f | Out-Null; };
+    { reg.exe add &quot;HKU\DefaultUser\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager&quot; /v PreInstalledAppsEnabled /t REG_DWORD /d 0 /f | Out-Null; };
+    { reg.exe add &quot;HKU\DefaultUser\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager&quot; /v SilentInstalledAppsEnabled /t REG_DWORD /d 0 /f | Out-Null; };
+    { reg.exe add &quot;HKU\DefaultUser\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager&quot; /v ContentDeliveryAllowed /t REG_DWORD /d 0 /f | Out-Null; };
+    { reg.exe add &quot;HKU\DefaultUser\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager&quot; /v FeatureManagementEnabled /t REG_DWORD /d 0 /f | Out-Null; };
+    { reg.exe add &quot;HKU\DefaultUser\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager&quot; /v PreInstalledAppsEverEnabled /t REG_DWORD /d 0 /f | Out-Null; };
+    { reg.exe add &quot;HKU\DefaultUser\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager&quot; /v SoftLandingEnabled /t REG_DWORD /d 0 /f | Out-Null; };
+    { reg.exe add &quot;HKU\DefaultUser\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager&quot; /v SubscribedContentEnabled /t REG_DWORD /d 0 /f | Out-Null; };
+    { reg.exe add &quot;HKU\DefaultUser\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager&quot; /v SubscribedContent-310093Enabled /t REG_DWORD /d 0 /f | Out-Null; };
+    { reg.exe add &quot;HKU\DefaultUser\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager&quot; /v SubscribedContent-338388Enabled /t REG_DWORD /d 0 /f | Out-Null; };
+    { reg.exe add &quot;HKU\DefaultUser\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager&quot; /v SubscribedContent-338389Enabled /t REG_DWORD /d 0 /f | Out-Null; };
+    { reg.exe add &quot;HKU\DefaultUser\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager&quot; /v SubscribedContent-338393Enabled /t REG_DWORD /d 0 /f | Out-Null; };
+    { reg.exe add &quot;HKU\DefaultUser\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager&quot; /v SubscribedContent-353694Enabled /t REG_DWORD /d 0 /f | Out-Null; };
+    { reg.exe add &quot;HKU\DefaultUser\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager&quot; /v SubscribedContent-353696Enabled /t REG_DWORD /d 0 /f | Out-Null; };
+    { reg.exe add &quot;HKU\DefaultUser\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager&quot; /v SystemPaneSuggestionsEnabled /t REG_DWORD /d 0 /f | Out-Null; };
+    { reg.exe delete &quot;HKU\DefaultUser\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager\Subscriptions&quot; /f | Out-Null; };
+    { reg.exe delete &quot;HKU\DefaultUser\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager\SuggestedApps&quot; /f | Out-Null; };
+    # Privacy / Advertising
+    { reg.exe add &quot;HKU\DefaultUser\SOFTWARE\Microsoft\Windows\CurrentVersion\AdvertisingInfo&quot; /v Enabled /t REG_DWORD /d 0 /f | Out-Null; };
+    { reg.exe add &quot;HKU\DefaultUser\SOFTWARE\Microsoft\Windows\CurrentVersion\Privacy&quot; /v TailoredExperiencesWithDiagnosticDataEnabled /t REG_DWORD /d 0 /f | Out-Null; };
+    { reg.exe add &quot;HKU\DefaultUser\SOFTWARE\Microsoft\Speech_OneCore\Settings\OnlineSpeechPrivacy&quot; /v HasAccepted /t REG_DWORD /d 0 /f | Out-Null; };
+    { reg.exe add &quot;HKU\DefaultUser\SOFTWARE\Microsoft\Input\TIPC&quot; /v Enabled /t REG_DWORD /d 0 /f | Out-Null; };
+    { reg.exe add &quot;HKU\DefaultUser\SOFTWARE\Microsoft\InputPersonalization&quot; /v RestrictImplicitInkCollection /t REG_DWORD /d 1 /f | Out-Null; };
+    { reg.exe add &quot;HKU\DefaultUser\SOFTWARE\Microsoft\InputPersonalization&quot; /v RestrictImplicitTextCollection /t REG_DWORD /d 1 /f | Out-Null; };
+    { reg.exe add &quot;HKU\DefaultUser\SOFTWARE\Microsoft\InputPersonalization\TrainedDataStore&quot; /v HarvestContacts /t REG_DWORD /d 0 /f | Out-Null; };
+    { reg.exe add &quot;HKU\DefaultUser\SOFTWARE\Microsoft\Personalization\Settings&quot; /v AcceptedPrivacyPolicy /t REG_DWORD /d 0 /f | Out-Null; };
+    { reg.exe add &quot;HKU\DefaultUser\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced&quot; /v TaskbarMn /t REG_DWORD /d 0 /f | Out-Null; };
+    { reg.exe unload &quot;HKU\DefaultUser&quot; | Out-Null; };
+
+    # HKLM Settings
+    { reg.exe add &quot;HKLM\SOFTWARE\Microsoft\PolicyManager\current\device\Start&quot; /v ConfigureStartPins /t REG_SZ /d &quot;{\&quot;pinnedList\&quot;: [{}]}&quot; /f | Out-Null; };
+    { reg.exe add &quot;HKLM\SOFTWARE\Policies\Microsoft\PushToInstall&quot; /v DisablePushToInstall /t REG_DWORD /d 1 /f | Out-Null; };
+    { reg.exe add &quot;HKLM\SOFTWARE\Policies\Microsoft\MRT&quot; /v DontOfferThroughWUAU /t REG_DWORD /d 1 /f | Out-Null; };
+    { reg.exe add &quot;HKLM\SOFTWARE\Policies\Microsoft\Windows\CloudContent&quot; /v DisableConsumerAccountStateContent /t REG_DWORD /d 1 /f | Out-Null; };
+    { reg.exe add &quot;HKLM\SOFTWARE\Policies\Microsoft\Windows\CloudContent&quot; /v DisableCloudOptimizedContent /t REG_DWORD /d 1 /f | Out-Null; };
+    { reg.exe add &quot;HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\ReserveManager&quot; /v ShippedWithReserves /t REG_DWORD /d 0 /f | Out-Null; };
+    { reg.exe add &quot;HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Chat&quot; /v ChatIcon /t REG_DWORD /d 3 /f | Out-Null; };
+    { reg.exe add &quot;HKLM\SOFTWARE\Policies\Microsoft\Windows\OneDrive&quot; /v DisableFileSyncNGSC /t REG_DWORD /d 1 /f | Out-Null; };
+    { reg.exe add &quot;HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Orchestrator\UScheduler\OutlookUpdate&quot; /v workCompleted /t REG_DWORD /d 1 /f | Out-Null; };
+    { reg.exe add &quot;HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Orchestrator\UScheduler\DevHomeUpdate&quot; /v workCompleted /t REG_DWORD /d 1 /f | Out-Null; };
+    { reg.exe delete &quot;HKLM\SOFTWARE\Microsoft\WindowsUpdate\Orchestrator\UScheduler_Oobe\OutlookUpdate&quot; /f | Out-Null; };
+    { reg.exe delete &quot;HKLM\SOFTWARE\Microsoft\WindowsUpdate\Orchestrator\UScheduler_Oobe\DevHomeUpdate&quot; /f | Out-Null; };
+    { reg.exe add &quot;HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsCopilot&quot; /v TurnOffWindowsCopilot /t REG_DWORD /d 1 /f | Out-Null; };
+    { reg.exe add &quot;HKLM\SOFTWARE\Policies\Microsoft\Edge&quot; /v HubsSidebarEnabled /t REG_DWORD /d 0 /f | Out-Null; };
+    { reg.exe add &quot;HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer&quot; /v DisableSearchBoxSuggestions /t REG_DWORD /d 1 /f | Out-Null; };
+    { reg.exe add &quot;HKLM\SOFTWARE\Policies\Microsoft\Teams&quot; /v DisableInstallation /t REG_DWORD /d 1 /f | Out-Null; };
+    { reg.exe add &quot;HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Mail&quot; /v PreventRun /t REG_DWORD /d 1 /f | Out-Null; };
+
+    # Windows Update Disables
+    { reg.exe add &quot;HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnce&quot; /v StopWUPostOOBE1 /t REG_SZ /d &quot;net stop wuauserv&quot; /f | Out-Null; };
+    { reg.exe add &quot;HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnce&quot; /v StopWUPostOOBE2 /t REG_SZ /d &quot;sc stop wuauserv&quot; /f | Out-Null; };
+    { reg.exe add &quot;HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnce&quot; /v StopWUPostOOBE3 /t REG_SZ /d &quot;sc config wuauserv start= disabled&quot; /f | Out-Null; };
+    { reg.exe add &quot;HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnce&quot; /v DisbaleWUPostOOBE1 /t REG_SZ /d &quot;reg add HKLM\SYSTEM\CurrentControlSet\Services\wuauserv /v Start /t REG_DWORD /d 4 /f&quot; /f | Out-Null; };
+    { reg.exe add &quot;HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate&quot; /v DoNotConnectToWindowsUpdateInternetLocations /t REG_DWORD /d 1 /f | Out-Null; };
+    { reg.exe add &quot;HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate&quot; /v DisableWindowsUpdateAccess /t REG_DWORD /d 1 /f | Out-Null; };
+    { reg.exe add &quot;HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate&quot; /v WUServer /t REG_SZ /d &quot;localhost&quot; /f | Out-Null; };
+    { reg.exe add &quot;HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate&quot; /v WUStatusServer /t REG_SZ /d &quot;localhost&quot; /f | Out-Null; };
+    { reg.exe add &quot;HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate&quot; /v UpdateServiceUrlAlternate /t REG_SZ /d &quot;localhost&quot; /f | Out-Null; };
+    { reg.exe add &quot;HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU&quot; /v UseWUServer /t REG_DWORD /d 1 /f | Out-Null; };
+    { reg.exe add &quot;HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\OOBE&quot; /v DisableOnline /t REG_DWORD /d 1 /f | Out-Null; };
+    { reg.exe delete &quot;HKLM\SYSTEM\CurrentControlSet\Services\WaaSMedicSVC&quot; /f | Out-Null; };
+    { reg.exe delete &quot;HKLM\SYSTEM\CurrentControlSet\Services\UsoSvc&quot; /f | Out-Null; };
+    { reg.exe add &quot;HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU&quot; /v NoAutoUpdate /t REG_DWORD /d 1 /f | Out-Null; };
+
+    # Windows Defender Disables
+    { reg.exe add &quot;HKLM\SYSTEM\CurrentControlSet\Services\WinDefend&quot; /v Start /t REG_DWORD /d 4 /f | Out-Null; };
+    { reg.exe add &quot;HKLM\SYSTEM\CurrentControlSet\Services\WdNisSvc&quot; /v Start /t REG_DWORD /d 4 /f | Out-Null; };
+    { reg.exe add &quot;HKLM\SYSTEM\CurrentControlSet\Services\WdNisDrv&quot; /v Start /t REG_DWORD /d 4 /f | Out-Null; };
+    { reg.exe add &quot;HKLM\SYSTEM\CurrentControlSet\Services\WdFilter&quot; /v Start /t REG_DWORD /d 4 /f | Out-Null; };
+    { reg.exe add &quot;HKLM\SYSTEM\CurrentControlSet\Services\Sense&quot; /v Start /t REG_DWORD /d 4 /f | Out-Null; };
+    { reg.exe add &quot;HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer&quot; /v SettingsPageVisibility /t REG_SZ /d &quot;hide:virus;windowsupdate&quot; /f | Out-Null; };
+
+    # Edge / OneDrive Path Removes
+    { Remove-Item -Path &quot;C:\Program Files (x86)\Microsoft\Edge&quot; -Recurse -Force -ErrorAction SilentlyContinue; };
+    { Remove-Item -Path &quot;C:\Program Files (x86)\Microsoft\EdgeUpdate&quot; -Recurse -Force -ErrorAction SilentlyContinue; };
+    { Remove-Item -Path &quot;C:\Program Files (x86)\Microsoft\EdgeCore&quot; -Recurse -Force -ErrorAction SilentlyContinue; };
+
+    # Scheduled Task Deletes
+    { Remove-Item -Path &quot;C:\Windows\System32\Tasks\Microsoft\Windows\Application Experience\Microsoft Compatibility Appraiser&quot; -Force -ErrorAction SilentlyContinue; };
+    { Remove-Item -Path &quot;C:\Windows\System32\Tasks\Microsoft\Windows\Customer Experience Improvement Program&quot; -Recurse -Force -ErrorAction SilentlyContinue; };
+    { Remove-Item -Path &quot;C:\Windows\System32\Tasks\Microsoft\Windows\Application Experience\ProgramDataUpdater&quot; -Force -ErrorAction SilentlyContinue; };
+    { Remove-Item -Path &quot;C:\Windows\System32\Tasks\Microsoft\Windows\Chkdsk\Proxy&quot; -Force -ErrorAction SilentlyContinue; };
+    { Remove-Item -Path &quot;C:\Windows\System32\Tasks\Microsoft\Windows\Windows Error Reporting\QueueReporting&quot; -Force -ErrorAction SilentlyContinue; };
+
     # Telemetry and Tracking Disable
-    { reg.exe add "HKLM\SOFTWARE\Policies\Microsoft\Windows\DataCollection" /v AllowTelemetry /t REG_DWORD /d 0 /f; };
-    { reg.exe add "HKLM\SOFTWARE\Policies\Microsoft\Windows\DataCollection" /v LimitEnhancedDiagnosticDataWindowsAnalytics /t REG_DWORD /d 0 /f; };
-    { reg.exe add "HKLM\SOFTWARE\Policies\Microsoft\Windows\DataCollection" /v DoNotShowFeedbackNotifications /t REG_DWORD /d 1 /f; };
-    { reg.exe add "HKLM\SOFTWARE\Policies\Microsoft\Windows\AppCompat" /v AITEnable /t REG_DWORD /d 0 /f; };
-    { reg.exe add "HKLM\SOFTWARE\Policies\Microsoft\Windows\AppCompat" /v DisableInventory /t REG_DWORD /d 1 /f; };
-    { reg.exe add "HKLM\SOFTWARE\Policies\Microsoft\Windows\AppCompat" /v DisableUCA /t REG_DWORD /d 1 /f; };
-    { reg.exe add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\DataCollection" /v AllowTelemetry /t REG_DWORD /d 0 /f; };
+    { reg.exe add &quot;HKLM\SOFTWARE\Policies\Microsoft\Windows\DataCollection&quot; /v AllowTelemetry /t REG_DWORD /d 0 /f; };
+    { reg.exe add &quot;HKLM\SOFTWARE\Policies\Microsoft\Windows\DataCollection&quot; /v LimitEnhancedDiagnosticDataWindowsAnalytics /t REG_DWORD /d 0 /f; };
+    { reg.exe add &quot;HKLM\SOFTWARE\Policies\Microsoft\Windows\DataCollection&quot; /v DoNotShowFeedbackNotifications /t REG_DWORD /d 1 /f; };
+    { reg.exe add &quot;HKLM\SOFTWARE\Policies\Microsoft\Windows\AppCompat&quot; /v AITEnable /t REG_DWORD /d 0 /f; };
+    { reg.exe add &quot;HKLM\SOFTWARE\Policies\Microsoft\Windows\AppCompat&quot; /v DisableInventory /t REG_DWORD /d 1 /f; };
+    { reg.exe add &quot;HKLM\SOFTWARE\Policies\Microsoft\Windows\AppCompat&quot; /v DisableUCA /t REG_DWORD /d 1 /f; };
+    { reg.exe add &quot;HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\DataCollection&quot; /v AllowTelemetry /t REG_DWORD /d 0 /f; };
     # Disable Ads and Suggestions
-    { reg.exe add "HKLM\SOFTWARE\Policies\Microsoft\Windows\AdvertisingInfo" /v DisabledByGroupPolicy /t REG_DWORD /d 1 /f; };
-    { reg.exe add "HKLM\SOFTWARE\Policies\Microsoft\Windows\CloudContent" /v DisableWindowsSpotlightFeatures /t REG_DWORD /d 1 /f; };
-    { reg.exe add "HKLM\SOFTWARE\Policies\Microsoft\Windows\CloudContent" /v DisableThirdPartySuggestions /t REG_DWORD /d 1 /f; };
+    { reg.exe add &quot;HKLM\SOFTWARE\Policies\Microsoft\Windows\AdvertisingInfo&quot; /v DisabledByGroupPolicy /t REG_DWORD /d 1 /f; };
+    { reg.exe add &quot;HKLM\SOFTWARE\Policies\Microsoft\Windows\CloudContent&quot; /v DisableWindowsSpotlightFeatures /t REG_DWORD /d 1 /f; };
+    { reg.exe add &quot;HKLM\SOFTWARE\Policies\Microsoft\Windows\CloudContent&quot; /v DisableThirdPartySuggestions /t REG_DWORD /d 1 /f; };
     # Disable Prefetch and SysMain (Superfetch)
-    { reg.exe add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management\PrefetchParameters" /v EnablePrefetcher /t REG_DWORD /d 0 /f; };
-    { reg.exe add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management\PrefetchParameters" /v EnableSuperfetch /t REG_DWORD /d 0 /f; };
+    { reg.exe add &quot;HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management\PrefetchParameters&quot; /v EnablePrefetcher /t REG_DWORD /d 0 /f; };
+    { reg.exe add &quot;HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management\PrefetchParameters&quot; /v EnableSuperfetch /t REG_DWORD /d 0 /f; };
+    # Disable Background Apps (UWP) globally to reduce Task Manager clutter
+    { reg.exe add &quot;HKLM\SOFTWARE\Policies\Microsoft\Windows\AppPrivacy&quot; /v LetAppsRunInBackground /t REG_DWORD /d 2 /f; };
+    # Completely disable SmartScreen
+    { reg.exe add &quot;HKLM\SOFTWARE\Policies\Microsoft\Windows\System&quot; /v EnableSmartScreen /t REG_DWORD /d 0 /f; };
+    { reg.exe add &quot;HKLM\SOFTWARE\Policies\Microsoft\Windows Defender\SmartScreen&quot; /v ConfigureAppInstallControl /t REG_SZ /d &quot;Anywhere&quot; /f; };
+    { reg.exe add &quot;HKLM\SOFTWARE\Policies\Microsoft\Windows Defender\SmartScreen&quot; /v ConfigureAppInstallControlEnabled /t REG_DWORD /d 0 /f; };
+    # Force Offline OOBE (BypassNRO)
+    { reg.exe add &quot;HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\OOBE&quot; /v BypassNRO /t REG_DWORD /d 1 /f; };
+    # Disable OOBE Privacy Experience to stop internet delays
+    { reg.exe add &quot;HKLM\SOFTWARE\Policies\Microsoft\Windows\OOBE&quot; /v DisablePrivacyExperience /t REG_DWORD /d 1 /f; };
     # Extreme Performance / Animation Kills
     {
-        reg.exe add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\OEMInformation" /v Manufacturer /t REG_SZ /d "Farhan Shaikh" /f;
-        reg.exe add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\OEMInformation" /v Model /t REG_SZ /d "WinAurex OS 11 Pro 25H2" /f;
-        reg.exe add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\OEMInformation" /v SupportPhone /t REG_SZ /d "mail: f98561965@gmail.com" /f;
-        reg.exe add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\OEMInformation" /v SupportURL /t REG_SZ /d "https://t.me/FFShaikh69" /f;
+        reg.exe add &quot;HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\OEMInformation&quot; /v Manufacturer /t REG_SZ /d &quot;WinAurex&quot; /f;
+        reg.exe add &quot;HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\OEMInformation&quot; /v Model /t REG_SZ /d &quot;WinAurex 11 OS Pro&quot; /f;
+        reg.exe add &quot;HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\OEMInformation&quot; /v SupportPhone /t REG_SZ /d &quot;+91 7778906798&quot; /f;
+                reg.exe add &quot;HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\OEMInformation&quot; /v SupportURL /t REG_SZ /d &quot;wa.me/917778906798&quot; /f;
+        reg.exe add &quot;HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\OEMInformation&quot; /v SupportHours /t REG_SZ /d &quot;Mon-Fri 9AM-5PM&quot; /f;
+        reg.exe add &quot;HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\OEMInformation&quot; /v Logo /t REG_SZ /d &quot;C:\Windows\System32\oemlogo.bmp&quot; /f;
+        reg.exe add &quot;HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\OEMInformation&quot; /v Author /t REG_SZ /d &quot;Farhan Shaikh&quot; /f;
+        reg.exe add &quot;HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\OEMInformation&quot; /v &quot;Author Info&quot; /t REG_SZ /d &quot;https://github.com/YTxFSGAMERz&quot; /f;
     };
     {
-		Set-ItemProperty -LiteralPath "Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects\ControlAnimations" -Name 'DefaultValue' -Value 0 -Type 'DWord' -Force;
-		Set-ItemProperty -LiteralPath "Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects\AnimateMinMax" -Name 'DefaultValue' -Value 0 -Type 'DWord' -Force;
-		Set-ItemProperty -LiteralPath "Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects\TaskbarAnimations" -Name 'DefaultValue' -Value 0 -Type 'DWord' -Force;
-		Set-ItemProperty -LiteralPath "Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects\DWMAeroPeekEnabled" -Name 'DefaultValue' -Value 0 -Type 'DWord' -Force;
-		Set-ItemProperty -LiteralPath "Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects\MenuAnimation" -Name 'DefaultValue' -Value 0 -Type 'DWord' -Force;
-		Set-ItemProperty -LiteralPath "Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects\TooltipAnimation" -Name 'DefaultValue' -Value 0 -Type 'DWord' -Force;
-		Set-ItemProperty -LiteralPath "Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects\SelectionFade" -Name 'DefaultValue' -Value 0 -Type 'DWord' -Force;
-		Set-ItemProperty -LiteralPath "Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects\DWMSaveThumbnailEnabled" -Name 'DefaultValue' -Value 0 -Type 'DWord' -Force;
-		Set-ItemProperty -LiteralPath "Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects\CursorShadow" -Name 'DefaultValue' -Value 0 -Type 'DWord' -Force;
-		Set-ItemProperty -LiteralPath "Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects\ListviewShadow" -Name 'DefaultValue' -Value 0 -Type 'DWord' -Force;
-		Set-ItemProperty -LiteralPath "Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects\ThumbnailsOrIcon" -Name 'DefaultValue' -Value 0 -Type 'DWord' -Force;
-		Set-ItemProperty -LiteralPath "Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects\ListviewAlphaSelect" -Name 'DefaultValue' -Value 0 -Type 'DWord' -Force;
-		Set-ItemProperty -LiteralPath "Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects\DragFullWindows" -Name 'DefaultValue' -Value 0 -Type 'DWord' -Force;
-		Set-ItemProperty -LiteralPath "Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects\ComboBoxAnimation" -Name 'DefaultValue' -Value 0 -Type 'DWord' -Force;
-		Set-ItemProperty -LiteralPath "Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects\FontSmoothing" -Name 'DefaultValue' -Value 0 -Type 'DWord' -Force;
-		Set-ItemProperty -LiteralPath "Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects\ListBoxSmoothScrolling" -Name 'DefaultValue' -Value 0 -Type 'DWord' -Force;
-		Set-ItemProperty -LiteralPath "Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects\DropShadow" -Name 'DefaultValue' -Value 0 -Type 'DWord' -Force;
+		Set-ItemProperty -LiteralPath &quot;Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects\ControlAnimations&quot; -Name &apos;DefaultValue&apos; -Value 0 -Type &apos;DWord&apos; -Force;
+		Set-ItemProperty -LiteralPath &quot;Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects\AnimateMinMax&quot; -Name &apos;DefaultValue&apos; -Value 0 -Type &apos;DWord&apos; -Force;
+		Set-ItemProperty -LiteralPath &quot;Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects\TaskbarAnimations&quot; -Name &apos;DefaultValue&apos; -Value 0 -Type &apos;DWord&apos; -Force;
+		Set-ItemProperty -LiteralPath &quot;Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects\DWMAeroPeekEnabled&quot; -Name &apos;DefaultValue&apos; -Value 0 -Type &apos;DWord&apos; -Force;
+		Set-ItemProperty -LiteralPath &quot;Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects\MenuAnimation&quot; -Name &apos;DefaultValue&apos; -Value 0 -Type &apos;DWord&apos; -Force;
+		Set-ItemProperty -LiteralPath &quot;Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects\TooltipAnimation&quot; -Name &apos;DefaultValue&apos; -Value 0 -Type &apos;DWord&apos; -Force;
+		Set-ItemProperty -LiteralPath &quot;Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects\SelectionFade&quot; -Name &apos;DefaultValue&apos; -Value 0 -Type &apos;DWord&apos; -Force;
+		Set-ItemProperty -LiteralPath &quot;Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects\DWMSaveThumbnailEnabled&quot; -Name &apos;DefaultValue&apos; -Value 0 -Type &apos;DWord&apos; -Force;
+		Set-ItemProperty -LiteralPath &quot;Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects\CursorShadow&quot; -Name &apos;DefaultValue&apos; -Value 0 -Type &apos;DWord&apos; -Force;
+		Set-ItemProperty -LiteralPath &quot;Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects\ListviewShadow&quot; -Name &apos;DefaultValue&apos; -Value 0 -Type &apos;DWord&apos; -Force;
+		Set-ItemProperty -LiteralPath &quot;Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects\ThumbnailsOrIcon&quot; -Name &apos;DefaultValue&apos; -Value 0 -Type &apos;DWord&apos; -Force;
+		Set-ItemProperty -LiteralPath &quot;Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects\ListviewAlphaSelect&quot; -Name &apos;DefaultValue&apos; -Value 0 -Type &apos;DWord&apos; -Force;
+		Set-ItemProperty -LiteralPath &quot;Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects\DragFullWindows&quot; -Name &apos;DefaultValue&apos; -Value 0 -Type &apos;DWord&apos; -Force;
+		Set-ItemProperty -LiteralPath &quot;Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects\ComboBoxAnimation&quot; -Name &apos;DefaultValue&apos; -Value 0 -Type &apos;DWord&apos; -Force;
+		Set-ItemProperty -LiteralPath &quot;Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects\FontSmoothing&quot; -Name &apos;DefaultValue&apos; -Value 0 -Type &apos;DWord&apos; -Force;
+		Set-ItemProperty -LiteralPath &quot;Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects\ListBoxSmoothScrolling&quot; -Name &apos;DefaultValue&apos; -Value 0 -Type &apos;DWord&apos; -Force;
+		Set-ItemProperty -LiteralPath &quot;Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects\DropShadow&quot; -Name &apos;DefaultValue&apos; -Value 0 -Type &apos;DWord&apos; -Force;
 	};
     # Kill Scheduled Tasks
     {
-        Get-ScheduledTask | Where-Object {$_.TaskPath -like "*Microsoft\Windows\Windows Defender*"} | Disable-ScheduledTask -ErrorAction SilentlyContinue;
-        Get-ScheduledTask | Where-Object {$_.TaskPath -like "*Microsoft\Windows\Customer Experience Improvement Program*"} | Disable-ScheduledTask -ErrorAction SilentlyContinue;
-        Get-ScheduledTask | Where-Object {$_.TaskPath -like "*Microsoft\Windows\Application Experience*"} | Disable-ScheduledTask -ErrorAction SilentlyContinue;
-        Get-ScheduledTask | Where-Object {$_.TaskPath -like "*Microsoft\Windows\Autochk*"} | Disable-ScheduledTask -ErrorAction SilentlyContinue;
-        Get-ScheduledTask | Where-Object {$_.TaskPath -like "*Microsoft\Windows\Maintenance*"} | Disable-ScheduledTask -ErrorAction SilentlyContinue;
+        Get-ScheduledTask | Where-Object {$_.TaskPath -like &quot;*Microsoft\Windows\Windows Defender*&quot;} | Disable-ScheduledTask -ErrorAction SilentlyContinue;
+        Get-ScheduledTask | Where-Object {$_.TaskPath -like &quot;*Microsoft\Windows\Customer Experience Improvement Program*&quot;} | Disable-ScheduledTask -ErrorAction SilentlyContinue;
+        Get-ScheduledTask | Where-Object {$_.TaskPath -like &quot;*Microsoft\Windows\Application Experience*&quot;} | Disable-ScheduledTask -ErrorAction SilentlyContinue;
+        Get-ScheduledTask | Where-Object {$_.TaskPath -like &quot;*Microsoft\Windows\Autochk*&quot;} | Disable-ScheduledTask -ErrorAction SilentlyContinue;
+        Get-ScheduledTask | Where-Object {$_.TaskPath -like &quot;*Microsoft\Windows\Maintenance*&quot;} | Disable-ScheduledTask -ErrorAction SilentlyContinue;
+        Get-ScheduledTask | Where-Object {$_.TaskPath -like &quot;*Microsoft\Windows\TextServicesFramework*&quot;} | Disable-ScheduledTask -ErrorAction SilentlyContinue;
     };
 );
-&amp; { foreach( $script in $regTweaks ) { &amp; $script } } *&gt;&amp;1 | Out-String -Width 1KB -Stream &gt;&gt; "C:\Windows\Setup\Scripts\MegaTweaks.log";
+&amp; { foreach( $script in $regTweaks ) { &amp; $script } } *&gt;&amp;1 | Out-String -Width 1KB -Stream &gt;&gt; &quot;C:\Windows\Setup\Scripts\MegaTweaks.log&quot;;
+
+# =====================================================================
+# DYNAMIC OEM BRANDING &amp; WALLPAPERS
+# =====================================================================
+Write-Host &quot;Searching for OEM Info folder on attached drives...&quot;
+$drives = Get-Volume | Where-Object { $_.DriveType -eq &apos;Removable&apos; -or $_.DriveType -eq &apos;CD-ROM&apos; -or $_.DriveType -eq &apos;Fixed&apos; }
+foreach ($drive in $drives) {
+    if ($drive.DriveLetter) {
+        $oemPath = &quot;$($drive.DriveLetter):\OEM Info&quot;
+        if (Test-Path $oemPath) {
+            Write-Host &quot;Found OEM Info at $oemPath. Copying files...&quot;
+            if (Test-Path &quot;$oemPath\img0.jpg&quot;) {
+                Copy-Item -Path &quot;$oemPath\img0.jpg&quot; -Destination &quot;C:\Windows\Web\Wallpaper\Windows\img0.jpg&quot; -Force
+                Copy-Item -Path &quot;$oemPath\img0.jpg&quot; -Destination &quot;C:\Windows\Web\Wallpaper\Windows\img0_3840x2160.jpg&quot; -Force
+            }
+            if (Test-Path &quot;$oemPath\img19.jpg&quot;) {
+                Copy-Item -Path &quot;$oemPath\img19.jpg&quot; -Destination &quot;C:\Windows\Web\Wallpaper\Windows\img19.jpg&quot; -Force
+                Copy-Item -Path &quot;$oemPath\img19.jpg&quot; -Destination &quot;C:\Windows\Web\Wallpaper\Windows\img19_3840x2160.jpg&quot; -Force
+            }
+            if (Test-Path &quot;$oemPath\oemlogo.bmp&quot;) {
+                Copy-Item -Path &quot;$oemPath\oemlogo.bmp&quot; -Destination &quot;C:\Windows\System32\oemlogo.bmp&quot; -Force
+            }
+            break
+        }
+    }
+}
 
 # =====================================================================
 # APPLY EXTRACTED TWEAKS
 # =====================================================================
-Write-Host "Applying Extracted Registry Tweaks..."
-Get-ChildItem -Path "C:\Windows\Setup\Scripts\Tweaks" -Filter "*.reg" -Recurse | ForEach-Object { reg.exe import $_.FullName }
+Write-Host &quot;Applying Extracted Registry Tweaks...&quot;
+Get-ChildItem -Path &quot;C:\Windows\Setup\Scripts\Tweaks&quot; -Filter &quot;*.reg&quot; -Recurse | ForEach-Object { reg.exe import $_.FullName }
 
-Write-Host "Applying Extracted Batch Tweaks..."
-Get-ChildItem -Path "C:\Windows\Setup\Scripts\Tweaks" -Filter "*.bat" -Recurse | ForEach-Object { cmd.exe /c $_.FullName }
-Get-ChildItem -Path "C:\Windows\Setup\Scripts\Tweaks" -Filter "*.cmd" -Recurse | ForEach-Object { cmd.exe /c $_.FullName }
+Write-Host &quot;Applying Extracted Batch Tweaks...&quot;
+Get-ChildItem -Path &quot;C:\Windows\Setup\Scripts\Tweaks&quot; -Filter &quot;*.bat&quot; -Recurse | ForEach-Object { cmd.exe /c $_.FullName }
+Get-ChildItem -Path &quot;C:\Windows\Setup\Scripts\Tweaks&quot; -Filter &quot;*.cmd&quot; -Recurse | ForEach-Object { cmd.exe /c $_.FullName }
 
-Write-Host "Applying Extracted PowerShell Tweaks..."
-Get-ChildItem -Path "C:\Windows\Setup\Scripts\Tweaks" -Filter "*.ps1" -Recurse | ForEach-Object { &amp; $_.FullName -Force }
+Write-Host &quot;Applying Extracted PowerShell Tweaks...&quot;
+Get-ChildItem -Path &quot;C:\Windows\Setup\Scripts\Tweaks&quot; -Filter &quot;*.ps1&quot; -Recurse | ForEach-Object { &amp; $_.FullName -Force }
+    
+
     </File>
     <File path="C:\Windows\Setup\Scripts\UserOnce.ps1">
 $scripts = @(
@@ -608,26 +750,6 @@ echo *1.- Apply Recommended Optimizations
 echo *2.- System Optimizations
 echo *3.- Create Restore Point (Recommended)
 echo *4.- Delete temporary files
-echo *5.- Disable Windows Defender
-echo *6.- Disable Windows Update
-echo *7.- About the Optimizer
-echo.
-
-:: Options
-set /p op=Option: 
-if &quot;%op%&quot;==&quot;&quot; goto :start
-if &quot;%op%&quot;==&quot;1&quot; goto :recommended
-if &quot;%op%&quot;==&quot;2&quot; goto :optitweakspc
-if &quot;%op%&quot;==&quot;3&quot; goto :restorepoint
-if &quot;%op%&quot;==&quot;4&quot; goto :temp
-if &quot;%op%&quot;==&quot;5&quot; goto :defender
-if &quot;%op%&quot;==&quot;6&quot; goto :update
-if &quot;%op%&quot;==&quot;7&quot; goto :about
-if &quot;%op%&quot;==&quot;&quot; goto :Start
-
-:recommended
-cls
-
 echo.
 echo === Reducing svchost processes ===
 for /f &quot;delims=&quot; %%i in (&apos;powershell -NoProfile -Command &quot;(Get-CimInstance Win32_OperatingSystem).TotalVisibleMemorySize&quot;&apos;) do set MEM=%%i
@@ -1014,7 +1136,7 @@ reg add &quot;HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows Defender Se
 reg add &quot;HKEY_CURRENT_USER\Software\Policies\Microsoft\Windows\CurrentVersion\PushNotifications&quot; /v &quot;NoToastApplicationNotification&quot; /t REG_DWORD /d 1 /f 2&gt;nul
 reg add &quot;HKEY_CURRENT_USER\Software\Policies\Microsoft\Windows\CurrentVersion\PushNotifications&quot; /v &quot;NoToastApplicationNotificationOnLockScreen&quot; /t REG_DWORD /d 1 /f 2&gt;nul
 timeout /t 3 /nobreak
-goto :Start
+exit /b
 
 
 
@@ -1042,7 +1164,7 @@ reg add &quot;HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows Defender Se
 reg add &quot;HKEY_CURRENT_USER\Software\Policies\Microsoft\Windows\CurrentVersion\PushNotifications&quot; /v &quot;NoToastApplicationNotification&quot; /t REG_DWORD /d 0 /f 2&gt;nul
 reg add &quot;HKEY_CURRENT_USER\Software\Policies\Microsoft\Windows\CurrentVersion\PushNotifications&quot; /v &quot;NoToastApplicationNotificationOnLockScreen&quot; /t REG_DWORD /d 0 /f 2&gt;nul
 timeout /t 3 /nobreak
-goto :start
+exit /b
 
 :optitweakspc
 cls
@@ -1529,7 +1651,7 @@ echo Please restart your PC to notice the change.
 echo.
 echo --------------------------------------------------
 timeout /t 3 /nobreak
-goto :start
+exit /b
 
 
     </File>
@@ -7835,4 +7957,5 @@ $null = Read-Host &quot;Press Enter to exit...&quot;
 
   </Extensions>
 </unattend>
+
 
