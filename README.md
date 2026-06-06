@@ -111,6 +111,30 @@ The script will copy the ISO contents, convert `.esd` to `.wim` if necessary, mo
 <!-- ═══ ANIMATED DIVIDER ═══ -->
 <img src="https://user-images.githubusercontent.com/73097560/115834477-dbab4500-a447-11eb-908a-139a6edaec5c.gif" width="100%">
 
+<h2 align="center">⬛ DOWNLOADING THE PRE-BUILT ISO</h2>
+
+If you prefer not to build the ISO yourself, you can download a pre-compiled version directly from our [Releases page](https://github.com/YTxFSGAMERz/WinAurex-OS-Builder/releases).
+
+**Instructions:**
+1. Navigate to the **Releases** section of this repository.
+2. Download both parts of the compressed ISO archive (`compressed1.7z.001` and `compressed1.7z.002`). *We've split the files into two parts to easily accommodate file size limits and fast downloading.*
+3. Place both files in the same directory.
+4. Right-click on `compressed1.7z.001` and use [7-Zip](https://www.7-zip.org/) (or WinRAR) to extract the files. The archive will automatically merge the two parts and extract the complete `WinAurex.iso`.
+
+<!-- ═══ ANIMATED DIVIDER ═══ -->
+<img src="https://user-images.githubusercontent.com/73097560/115834477-dbab4500-a447-11eb-908a-139a6edaec5c.gif" width="100%">
+
+<h2 align="center">⬛ USING THE SCRIPTS & AUTOUNATTEND.XML</h2>
+
+For a fully unattended Windows 11 installation that bypasses OOBE prompts, forces a local account, and applies essential tweaks automatically:
+
+1. Copy the `autounattend.xml` file to the root of your bootable USB installation media (created via Rufus or Ventoy).
+2. During the Windows setup process, this XML file will be automatically detected and processed, bypassing the Microsoft Account requirement and applying custom configurations on-the-fly.
+3. Once the installation is complete, you can run any post-install scripts provided to finalize your WinAurex setup.
+
+<!-- ═══ ANIMATED DIVIDER ═══ -->
+<img src="https://user-images.githubusercontent.com/73097560/115834477-dbab4500-a447-11eb-908a-139a6edaec5c.gif" width="100%">
+
 <h2 align="center">⬛ DOCUMENTATION & SYNERGY</h2>
 
 <div align="center">
