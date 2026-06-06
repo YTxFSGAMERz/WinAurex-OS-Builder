@@ -458,7 +458,7 @@ reg unload HKLM\zNTUSER >null
 reg unload HKLM\zSOFTWARE
 reg unload HKLM\zSYSTEM >null
 Write-Host "Extracting Post Install files to Desktop..."
-$zipPath = "C:\Users\Admin\Documents\GitHub\WinAurex\Windows-Optimisations-Release.zip"
+$zipPath = "C:\Users\Admin\Documents\GitHub\WinAurex\WinAurex-Release.zip"
 if (Test-Path $zipPath) {
     $desktopPath = "$mainOSDrive\scratchdir\Users\Public\Desktop\Post Install"
     New-Item -ItemType Directory -Force -Path $desktopPath | Out-Null
