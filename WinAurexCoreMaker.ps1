@@ -1,6 +1,6 @@
 if ((Get-ExecutionPolicy) -eq 'Restricted') {
     Write-Host "Your current PowerShell Execution Policy is set to Restricted, which prevents scripts from running. Do you want to change it to RemoteSigned? (yes/no)"
-    $response = Read-Host
+    $response = 'yes'
     if ($response -eq 'yes') {
         Set-ExecutionPolicy RemoteSigned -Scope CurrentUser -Confirm:$false
     } else {
@@ -29,7 +29,8 @@ Start-Transcript -Path "$PSScriptRoot\WinAurex.log"
 Write-Host "Welcome to WinAurex Core builder! BETA 09-05-25"
 Write-Host "This script generates a significantly reduced Windows 11 image. However, it's not suitable for regular use due to its lack of serviceability - you can't add languages, updates, or features post-creation. WinAurex Core is not a full Windows 11 substitute but a rapid testing or development tool, potentially useful for VM environments."
 Write-Host "Do you want to continue? (y/n)"
-$input = Read-Host
+# $input = Read-Host "Do you want to continue? (y/n)"
+$input = "y"
 
 if ($input -eq 'y') {
     Write-Host "Off we go..."
@@ -39,26 +40,44 @@ Clear-Host
 $mainOSDrive = $env:SystemDrive
 $hostArchitecture = $Env:PROCESSOR_ARCHITECTURE
 New-Item -ItemType Directory -Force -Path "$mainOSDrive\WinAurex\sources" >null
-$DriveLetter = Read-Host "Please enter the drive letter for the Windows 11 image"
-$DriveLetter = $DriveLetter + ":"
-
-if ((Test-Path "$DriveLetter\sources\boot.wim") -eq $false -or (Test-Path "$DriveLetter\sources\install.wim") -eq $false) {
-    if ((Test-Path "$DriveLetter\sources\install.esd") -eq $true) {
-        Write-Host "Found install.esd, converting to install.wim..."
-        &  'dism' '/English' "/Get-WimInfo" "/wimfile:$DriveLetter\sources\install.esd"
-        $index = Read-Host "Please enter the image index"
-        Write-Host ' '
-        Write-Host 'Converting install.esd to install.wim. This may take a while...'
-        & 'DISM' /Export-Image /SourceImageFile:"$DriveLetter\sources\install.esd" /SourceIndex:$index /DestinationImageFile:"$mainOSDrive\WinAurex\sources\install.wim" /Compress:max /CheckIntegrity
-    } else {
-        Write-Host "Can't find Windows OS Installation files in the specified Drive Letter.."
-        Write-Host "Please enter the correct DVD Drive Letter.."
-        exit
+Write-Host "Searching for Windows Installation Media..."
+$installDrive = $null
+$drives = Get-Volume | Where-Object { $_.DriveType -eq 'Removable' -or $_.DriveType -eq 'CD-ROM' -or $_.DriveType -eq 'Fixed' }
+foreach ($drive in $drives) {
+    if ($drive.DriveLetter) {
+        $letter = $drive.DriveLetter + ":"
+        if ((Test-Path "$letter\sources\boot.wim") -and ((Test-Path "$letter\sources\install.wim") -or (Test-Path "$letter\sources\install.esd"))) {
+            $installDrive = $letter
+            break
+        }
     }
 }
 
+if ($installDrive) {
+    $DriveLetter = $installDrive
+    Write-Host "Found Windows installation media at $DriveLetter"
+} else {
+    $DriveLetter = Read-Host "Could not automatically find Windows installation media. Please enter the Drive Letter (e.g., D)"
+    $DriveLetter = $DriveLetter + ":"
+}
+
+if ((Test-Path "$DriveLetter\sources\boot.wim") -eq $false -or ((Test-Path "$DriveLetter\sources\install.wim") -eq $false -and (Test-Path "$DriveLetter\sources\install.esd") -eq $false)) {
+    Write-Host "Can't find Windows OS Installation files in the specified Drive Letter.."
+    Write-Host "Please enter the correct DVD Drive Letter.."
+    exit
+}
+
+if ((Test-Path "$DriveLetter\sources\install.wim") -eq $false -and (Test-Path "$DriveLetter\sources\install.esd") -eq $true) {
+    Write-Host "Found install.esd, preparing to convert..."
+    & 'dism' '/English' "/Get-WimInfo" "/wimfile:$DriveLetter\sources\install.esd"
+    $esdIndex = Read-Host "Please enter the index of the Windows edition you want to use (e.g. 1 for Home, 6 for Pro)"
+    Write-Host ' '
+    Write-Host 'Converting install.esd to install.wim. This may take a while...'
+    & 'DISM' /Export-Image /SourceImageFile:"$DriveLetter\sources\install.esd" /SourceIndex:$esdIndex /DestinationImageFile:"$mainOSDrive\WinAurex\sources\install.wim" /Compress:max /CheckIntegrity
+}
+
 Write-Host "Copying Windows image..."
-Copy-Item -Path "$DriveLetter\*" -Destination "$mainOSDrive\WinAurex" -Recurse -Force > null
+robocopy "$DriveLetter" "$mainOSDrive\WinAurex" /E /MT:16 /R:2 /W:2 /XD "System Volume Information" "$RECYCLE.BIN" > $null
 Set-ItemProperty -Path "$mainOSDrive\WinAurex\sources\install.esd" -Name IsReadOnly -Value $false > $null 2>&1
 Remove-Item "$mainOSDrive\WinAurex\sources\install.esd" > $null 2>&1
 Write-Host "Copy complete!"
@@ -66,7 +85,12 @@ Start-Sleep -Seconds 2
 Clear-Host
 Write-Host "Getting image information:"
 &  'dism' '/English' "/Get-WimInfo" "/wimfile:$mainOSDrive\WinAurex\sources\install.wim"
-$index = Read-Host "Please enter the image index"
+
+if ((Test-Path "$DriveLetter\sources\install.esd") -eq $false) {
+    $index = Read-Host "Please enter the index of the Windows edition you want to build (e.g. 1, 6)"
+} else {
+    $index = 1
+}
 Write-Host "Mounting Windows image. This may take a while."
 $wimFilePath = "$($env:SystemDrive)\WinAurex\sources\install.wim" 
 & takeown "/F" $wimFilePath 
@@ -116,7 +140,7 @@ $packages = & 'dism' '/English' "/image:$($env:SystemDrive)\scratchdir" '/Get-Pr
             $matches[1]
         }
     }
-$packagePrefixes = 'Clipchamp.Clipchamp_', 'Microsoft.BingNews_', 'Microsoft.BingWeather_', 'Microsoft.GamingApp_', 'Microsoft.GetHelp_', 'Microsoft.Getstarted_', 'Microsoft.MicrosoftOfficeHub_', 'Microsoft.MicrosoftSolitaireCollection_', 'Microsoft.People_', 'Microsoft.PowerAutomateDesktop_', 'Microsoft.Todos_', 'Microsoft.WindowsAlarms_', 'microsoft.windowscommunicationsapps_', 'Microsoft.WindowsFeedbackHub_', 'Microsoft.WindowsMaps_', 'Microsoft.WindowsSoundRecorder_', 'Microsoft.Xbox.TCUI_', 'Microsoft.XboxGamingOverlay_', 'Microsoft.XboxGameOverlay_', 'Microsoft.XboxSpeechToTextOverlay_', 'Microsoft.YourPhone_', 'Microsoft.ZuneMusic_', 'Microsoft.ZuneVideo_', 'MicrosoftCorporationII.MicrosoftFamily_', 'MicrosoftCorporationII.QuickAssist_', 'MicrosoftTeams_', 'Microsoft.549981C3F5F10_', 'Microsoft.Windows.Copilot', 'MSTeams_', 'Microsoft.OutlookForWindows_', 'Microsoft.Windows.Teams_', 'Microsoft.Copilot_', 'Microsoft.WindowsCalculator_', 'Microsoft.WindowsCamera_', 'Microsoft.Paint_', 'Microsoft.ScreenSketch_', 'Microsoft.Windows.Photos_', 'Microsoft.WindowsStore_', 'Microsoft.DesktopAppInstaller_', 'Microsoft.SecHealthUI_', 'Microsoft.WindowsTerminal_', 'Microsoft.XboxApp_'
+$packagePrefixes = 'Clipchamp.Clipchamp_', 'Microsoft.BingNews_', 'Microsoft.BingWeather_', 'Microsoft.GamingApp_', 'Microsoft.GetHelp_', 'Microsoft.Getstarted_', 'Microsoft.MicrosoftOfficeHub_', 'Microsoft.MicrosoftSolitaireCollection_', 'Microsoft.People_', 'Microsoft.PowerAutomateDesktop_', 'Microsoft.Todos_', 'Microsoft.WindowsAlarms_', 'microsoft.windowscommunicationsapps_', 'Microsoft.WindowsFeedbackHub_', 'Microsoft.WindowsMaps_', 'Microsoft.WindowsSoundRecorder_', 'Microsoft.Xbox.TCUI_', 'Microsoft.XboxGamingOverlay_', 'Microsoft.XboxGameOverlay_', 'Microsoft.XboxSpeechToTextOverlay_', 'Microsoft.YourPhone_', 'Microsoft.ZuneMusic_', 'Microsoft.ZuneVideo_', 'MicrosoftCorporationII.MicrosoftFamily_', 'MicrosoftCorporationII.QuickAssist_', 'MicrosoftTeams_', 'Microsoft.549981C3F5F10_', 'Microsoft.Windows.Copilot', 'MSTeams_', 'Microsoft.OutlookForWindows_', 'Microsoft.Windows.Teams_', 'Microsoft.Copilot_', 'Microsoft.WindowsCalculator_', 'Microsoft.WindowsCamera_', 'Microsoft.Paint_', 'Microsoft.ScreenSketch_', 'Microsoft.Windows.Photos_', 'Microsoft.WindowsStore_', 'Microsoft.DesktopAppInstaller_', 'Microsoft.SecHealthUI_', 'Microsoft.WindowsTerminal_', 'Microsoft.XboxApp_', 'Microsoft.Windows.Backup_'
 
 $packagesToRemove = $packages | Where-Object {
     $packageName = $_
@@ -128,6 +152,30 @@ foreach ($package in $packagesToRemove) {
 }
 
 Write-Host "Removing of system apps complete! Now proceeding to removal of system packages..."
+Write-Host "Forcibly eradicating protected apps from WindowsApps..."
+$windowsAppsPath = "$mainOSDrive\scratchdir\Program Files\WindowsApps"
+$targetApps = Get-ChildItem -Path $windowsAppsPath -Directory -Force -ErrorAction SilentlyContinue | Where-Object { $_.Name -match "SecHealthUI|Getstarted|Backup" }
+foreach ($app in $targetApps) {
+    & takeown "/F" $app.FullName "/R" "/D" "Y" | Out-Null
+    & icacls $app.FullName "/grant" "$($adminGroup.Value):(F)" "/T" "/C" "/Q" | Out-Null
+    Remove-Item -Path $app.FullName -Recurse -Force -ErrorAction SilentlyContinue
+}
+
+Write-Host "Forcibly obliterating Windows Security from System32..."
+$system32Path = "$mainOSDrive\scratchdir\Windows\System32"
+$secHealthFiles = Get-ChildItem -Path $system32Path -Include "*SecurityHealth*" -Recurse -Force -ErrorAction SilentlyContinue
+foreach ($file in $secHealthFiles) {
+    & takeown "/F" $file.FullName "/A" | Out-Null
+    & icacls $file.FullName "/grant" "Administrators:F" "/C" "/Q" | Out-Null
+    Remove-Item -Path $file.FullName -Force -ErrorAction SilentlyContinue
+}
+
+Write-Host "Destroying associated Start Menu shortcuts..."
+$startMenuPrograms = "$mainOSDrive\scratchdir\ProgramData\Microsoft\Windows\Start Menu\Programs"
+Get-ChildItem -Path $startMenuPrograms -Recurse -Force -Include "*Security*.lnk", "*Get Started*.lnk", "*Backup*.lnk" -ErrorAction SilentlyContinue | Remove-Item -Force -ErrorAction SilentlyContinue
+$defaultStartMenu = "$mainOSDrive\scratchdir\Users\Default\AppData\Roaming\Microsoft\Windows\Start Menu\Programs"
+Get-ChildItem -Path $defaultStartMenu -Recurse -Force -Include "*Security*.lnk", "*Get Started*.lnk", "*Backup*.lnk" -ErrorAction SilentlyContinue | Remove-Item -Force -ErrorAction SilentlyContinue
+
 Start-Sleep -Seconds 1
 Clear-Host
 
@@ -169,7 +217,7 @@ foreach ($packagePattern in $packagePatterns) {
 }
 
 Write-Host "Do you want to enable .NET 3.5? This cannot be done after the image has been created! (y/n)"
-$input = Read-Host
+$input = 'n'
 
 if ($input -eq 'y') {
     Write-Host "Enabling .NET 3.5..."
@@ -228,122 +276,15 @@ Remove-Item -Path "$mainOSDrive\scratchdir\Windows\System32\OneDriveSetup.exe" -
 Write-Host "Removal complete!"
 Start-Sleep -Seconds 2
 Clear-Host
-Write-Host "Taking ownership of the WinSxS folder. This might take a while..."
-& 'takeown' '/f' "$mainOSDrive\scratchdir\Windows\WinSxS" '/r'
-& 'icacls' "$mainOSDrive\scratchdir\Windows\WinSxS" '/grant' "$($adminGroup.Value):(F)" '/T' '/C'
-Write-host "Complete!"
-Start-Sleep -Seconds 2
-Clear-Host
-Write-Host "Preparing..."
-$folderPath = Join-Path -Path $mainOSDrive -ChildPath "\scratchdir\Windows\WinSxS_edit"
-$sourceDirectory = "$mainOSDrive\scratchdir\Windows\WinSxS"
-$destinationDirectory = "$mainOSDrive\scratchdir\Windows\WinSxS_edit"
-New-Item -Path $folderPath -ItemType Directory
-if ($architecture -eq "amd64") {
-   $dirsToCopy = @(
-        "x86_microsoft.windows.common-controls_6595b64144ccf1df_*",
-        "x86_microsoft.windows.gdiplus_6595b64144ccf1df_*",    
-        "x86_microsoft.windows.i..utomation.proxystub_6595b64144ccf1df_*",
-        "x86_microsoft.windows.isolationautomation_6595b64144ccf1df_*",
-        "x86_microsoft-windows-s..ngstack-onecorebase_31bf3856ad364e35_*",
-        "x86_microsoft-windows-s..stack-termsrv-extra_31bf3856ad364e35_*",
-        "x86_microsoft-windows-servicingstack_31bf3856ad364e35_*",
-        "x86_microsoft-windows-servicingstack-inetsrv_*",
-        "x86_microsoft-windows-servicingstack-onecore_*",
-        "amd64_microsoft.vc80.crt_1fc8b3b9a1e18e3b_*",
-        "amd64_microsoft.vc90.crt_1fc8b3b9a1e18e3b_*",
-        "amd64_microsoft.windows.c..-controls.resources_6595b64144ccf1df_*",
-        "amd64_microsoft.windows.common-controls_6595b64144ccf1df_*",
-        "amd64_microsoft.windows.gdiplus_6595b64144ccf1df_*",
-        "amd64_microsoft.windows.i..utomation.proxystub_6595b64144ccf1df_*",
-        "amd64_microsoft.windows.isolationautomation_6595b64144ccf1df_*",
-        "amd64_microsoft-windows-s..stack-inetsrv-extra_31bf3856ad364e35_*",
-        "amd64_microsoft-windows-s..stack-msg.resources_31bf3856ad364e35_*",
-        "amd64_microsoft-windows-s..stack-termsrv-extra_31bf3856ad364e35_*",
-        "amd64_microsoft-windows-servicingstack_31bf3856ad364e35_*",
-        "amd64_microsoft-windows-servicingstack-inetsrv_31bf3856ad364e35_*",
-        "amd64_microsoft-windows-servicingstack-msg_31bf3856ad364e35_*",
-        "amd64_microsoft-windows-servicingstack-onecore_31bf3856ad364e35_*",
-        "Catalogs",
-        "FileMaps",
-        "Fusion",
-        "InstallTemp",
-        "Manifests",
-        "x86_microsoft.vc80.crt_1fc8b3b9a1e18e3b_*",
-        "x86_microsoft.vc90.crt_1fc8b3b9a1e18e3b_*",
-        "x86_microsoft.windows.c..-controls.resources_6595b64144ccf1df_*",
-        "x86_microsoft.windows.c..-controls.resources_6595b64144ccf1df_*"
-    )
- # Copy each directory
-   foreach ($dir in $dirsToCopy) {
-        $sourceDirs = Get-ChildItem -Path $sourceDirectory -Filter $dir -Directory
-        foreach ($sourceDir in $sourceDirs) {
-            $destDir = Join-Path -Path $destinationDirectory -ChildPath $sourceDir.Name
-            Write-Host "Copying $sourceDir.FullName to $destDir"
-            Copy-Item -Path $sourceDir.FullName -Destination $destDir -Recurse -Force
-        }
-    }
-}
- elseif ($architecture -eq "arm64") {
-    # Specify the list of files to copy
-     $dirsToCopy = @(
-        "arm64_microsoft-windows-servicingstack-onecore_31bf3856ad364e35_*",
-        "Catalogs"
-        "FileMaps"
-        "Fusion"
-        "InstallTemp"
-        "Manifests"
-        "SettingsManifests"
-        "Temp"
-        "x86_microsoft.vc80.crt_1fc8b3b9a1e18e3b_*"
-        "x86_microsoft.vc90.crt_1fc8b3b9a1e18e3b_*"
-        "x86_microsoft.windows.c..-controls.resources_6595b64144ccf1df_*"
-        "x86_microsoft.windows.common-controls_6595b64144ccf1df_*"
-        "x86_microsoft.windows.gdiplus_6595b64144ccf1df_*"
-        "x86_microsoft.windows.i..utomation.proxystub_6595b64144ccf1df_*"
-        "x86_microsoft.windows.isolationautomation_6595b64144ccf1df_*"
-        "arm_microsoft.windows.c..-controls.resources_6595b64144ccf1df_*"
-        "arm_microsoft.windows.common-controls_6595b64144ccf1df_*"
-        "arm_microsoft.windows.gdiplus_6595b64144ccf1df_*"
-        "arm_microsoft.windows.i..utomation.proxystub_6595b64144ccf1df_*"
-        "arm_microsoft.windows.isolationautomation_6595b64144ccf1df_*"
-        "arm64_microsoft.vc80.crt_1fc8b3b9a1e18e3b_*"
-        "arm64_microsoft.vc90.crt_1fc8b3b9a1e18e3b_*"
-        "arm64_microsoft.windows.c..-controls.resources_6595b64144ccf1df_*"
-        "arm64_microsoft.windows.common-controls_6595b64144ccf1df_*"
-        "arm64_microsoft.windows.gdiplus_6595b64144ccf1df_*"
-        "arm64_microsoft.windows.i..utomation.proxystub_6595b64144ccf1df_*"
-        "arm64_microsoft.windows.isolationautomation_6595b64144ccf1df_*"
-        "arm64_microsoft-windows-servicing-adm_31bf3856ad364e35_*"
-        "arm64_microsoft-windows-servicingcommon_31bf3856ad364e35_*"
-        "arm64_microsoft-windows-servicing-onecore-uapi_31bf3856ad364e35_*"
-        "arm64_microsoft-windows-servicingstack_31bf3856ad364e35_*"
-        "arm64_microsoft-windows-servicingstack-inetsrv_31bf3856ad364e35_*"
-        "arm64_microsoft-windows-servicingstack-msg_31bf3856ad364e35_*"
-    )
-}
-foreach ($dir in $dirsToCopy) {
-        $sourceDirs = Get-ChildItem -Path $sourceDirectory -Filter $dir -Directory
-        foreach ($sourceDir in $sourceDirs) {
-            $destDir = Join-Path -Path $destinationDirectory -ChildPath $sourceDir.Name
-            Write-Host "Copying $sourceDir.FullName to $destDir"
-            Copy-Item -Path $sourceDir.FullName -Destination $destDir -Recurse -Force
-        }
-    }  
 
-
-Write-Host "Deleting WinSxS. This may take a while..."
-        Remove-Item -Path $mainOSDrive\scratchdir\Windows\WinSxS -Recurse -Force
-
-Rename-Item -Path $mainOSDrive\scratchdir\Windows\WinSxS_edit -NewName $mainOSDrive\scratchdir\Windows\WinSxS
-Write-Host "Complete!"
 
 Write-Host "Loading registry..."
-reg load HKLM\zCOMPONENTS $mainOSDrive\scratchdir\Windows\System32\config\COMPONENTS | Out-Null
-reg load HKLM\zDEFAULT $mainOSDrive\scratchdir\Windows\System32\config\default | Out-Null
-reg load HKLM\zNTUSER $mainOSDrive\scratchdir\Users\Default\ntuser.dat | Out-Null
-reg load HKLM\zSOFTWARE $mainOSDrive\scratchdir\Windows\System32\config\SOFTWARE | Out-Null
-reg load HKLM\zSYSTEM $mainOSDrive\scratchdir\Windows\System32\config\SYSTEM | Out-Null
+reg load HKLM\zCOMPONENTS $ScratchDisk\scratchdir\Windows\System32\config\COMPONENTS | Out-Null
+reg load HKLM\zDEFAULT $ScratchDisk\scratchdir\Windows\System32\config\default | Out-Null
+reg load HKLM\zNTUSER $ScratchDisk\scratchdir\Users\Default\ntuser.dat | Out-Null
+reg load HKLM\zSOFTWARE $ScratchDisk\scratchdir\Windows\System32\config\SOFTWARE | Out-Null
+reg load HKLM\zSYSTEM $ScratchDisk\scratchdir\Windows\System32\config\SYSTEM | Out-Null
+
 Write-Host "Applying OEM Info and Custom Wallpapers to install.wim..."
 $oemFolder = "$PSScriptRoot\OEM Info"
 if (Test-Path "$oemFolder\img0.jpg") {
@@ -378,7 +319,6 @@ $oemKey = "HKLM\zSOFTWARE\Microsoft\Windows\CurrentVersion\OEMInformation"
 & 'reg' 'add' $oemKey '/v' 'Logo' '/t' 'REG_SZ' '/d' 'C:\Windows\System32\oemlogo.bmp' '/f' | Out-Null
 & 'reg' 'add' $oemKey '/v' 'Author' '/t' 'REG_SZ' '/d' 'Farhan Shaikh' '/f' | Out-Null
 & 'reg' 'add' $oemKey '/v' 'Author Info' '/t' 'REG_SZ' '/d' 'https://github.com/YTxFSGAMERz' '/f' | Out-Null
-
 Write-Host "Bypassing system requirements(on the system image):"
 & 'reg' 'add' 'HKLM\zDEFAULT\Control Panel\UnsupportedHardwareNotificationCache' '/v' 'SV1' '/t' 'REG_DWORD' '/d' '0' '/f' | Out-Null
 & 'reg' 'add' 'HKLM\zDEFAULT\Control Panel\UnsupportedHardwareNotificationCache' '/v' 'SV2' '/t' 'REG_DWORD' '/d' '0' '/f' | Out-Null
@@ -422,7 +362,7 @@ Write-Host "Disabling Sponsored Apps:"
 & 'reg' 'add' 'HKLM\zSOFTWARE\Policies\Microsoft\Windows\CloudContent' '/v' 'DisableCloudOptimizedContent' '/t' 'REG_DWORD' '/d' '1' '/f' | Out-Null
 Write-Host "Enabling Local Accounts on OOBE:"
 & 'reg' 'add' 'HKLM\zSOFTWARE\Microsoft\Windows\CurrentVersion\OOBE' '/v' 'BypassNRO' '/t' 'REG_DWORD' '/d' '1' '/f' | Out-Null
-Copy-Item -Path "$PSScriptRoot\autounattend.xml" -Destination "$mainOSDrive\scratchdir\Windows\System32\Sysprep\autounattend.xml" -Force | Out-Null
+Copy-Item -Path "$PSScriptRoot\autounattend.xml" -Destination "$ScratchDisk\scratchdir\Windows\System32\Sysprep\autounattend.xml" -Force | Out-Null
 Write-Host "Disabling Reserved Storage:"
 & 'reg' 'add' 'HKLM\zSOFTWARE\Microsoft\Windows\CurrentVersion\ReserveManager' '/v' 'ShippedWithReserves' '/t' 'REG_DWORD' '/d' '0' '/f' | Out-Null
 Write-Host "Disabling BitLocker Device Encryption"
@@ -517,6 +457,14 @@ reg unload HKLM\zDEFAULT >null
 reg unload HKLM\zNTUSER >null
 reg unload HKLM\zSOFTWARE
 reg unload HKLM\zSYSTEM >null
+Write-Host "Extracting Post Install files to Desktop..."
+$zipPath = "C:\Users\Admin\Documents\GitHub\WinAurex\Windows-Optimisations-Release.zip"
+if (Test-Path $zipPath) {
+    $desktopPath = "$mainOSDrive\scratchdir\Users\Public\Desktop\Post Install"
+    New-Item -ItemType Directory -Force -Path $desktopPath | Out-Null
+    Expand-Archive -Path $zipPath -DestinationPath $desktopPath -Force
+}
+
 Write-Host "Cleaning up image..."
 & 'dism' '/English' "/image:$mainOSDrive\scratchdir" '/Cleanup-Image' '/StartComponentCleanup' '/ResetBase' >null
 Write-Host "Cleanup complete."
@@ -542,6 +490,7 @@ reg load HKLM\zDEFAULT $mainOSDrive\scratchdir\Windows\System32\config\default
 reg load HKLM\zNTUSER $mainOSDrive\scratchdir\Users\Default\ntuser.dat
 reg load HKLM\zSOFTWARE $mainOSDrive\scratchdir\Windows\System32\config\SOFTWARE
 reg load HKLM\zSYSTEM $mainOSDrive\scratchdir\Windows\System32\config\SYSTEM
+
 Write-Host "Applying Setup Customizations to boot.wim..."
 if (Test-Path "$oemFolder\background.bmp") {
     $bgPath = "$mainOSDrive\scratchdir\sources\background.bmp"
@@ -558,7 +507,6 @@ if (Test-Path "$oemFolder\winpe.jpg") {
     if (Test-Path $pePath) { & takeown /f $pePath > $null 2>&1; & icacls $pePath /grant "$($adminGroup.Value):(F)" /c /q > $null 2>&1 }
     Copy-Item "$oemFolder\winpe.jpg" $pePath -Force
 }
-
 Write-Host "Bypassing system requirements(on the setup image):"
 & 'reg' 'add' 'HKLM\zDEFAULT\Control Panel\UnsupportedHardwareNotificationCache' '/v' 'SV1' '/t' 'REG_DWORD' '/d' '0' '/f' >null
 & 'reg' 'add' 'HKLM\zDEFAULT\Control Panel\UnsupportedHardwareNotificationCache' '/v' 'SV2' '/t' 'REG_DWORD' '/d' '0' '/f' >null
@@ -585,6 +533,19 @@ Write-Host "Exporting ESD. This may take a while..."
 & dism /Export-Image /SourceImageFile:"$mainOSDrive\WinAurex\sources\install.wim" /SourceIndex:1 /DestinationImageFile:"$mainOSDrive\WinAurex\sources\install.esd" /Compress:recovery
 Remove-Item "$mainOSDrive\WinAurex\sources\install.wim" > $null 2>&1
 Write-Host "The WinAurex image is now completed. Proceeding with the making of the ISO..."
+
+# Apply background_cli.bmp to the ISO sources folder to override the default purple setup background
+if (Test-Path "$oemFolder\setup.bmp") {
+    Copy-Item "$oemFolder\setup.bmp" "$mainOSDrive\WinAurex\sources\background_cli.bmp" -Force
+} elseif (Test-Path "$oemFolder\background.bmp") {
+    Copy-Item "$oemFolder\background.bmp" "$mainOSDrive\WinAurex\sources\background_cli.bmp" -Force
+}
+
+# Copy autounattend.xml to the root of the ISO so Windows Setup uses it!
+if (Test-Path "$PSScriptRoot\autounattend.xml") {
+    Copy-Item -Path "$PSScriptRoot\autounattend.xml" -Destination "$mainOSDrive\WinAurex\autounattend.xml" -Force | Out-Null
+}
+
 Write-Host "Creating ISO image..."
 $ADKDepTools = "C:\Program Files (x86)\Windows Kits\10\Assessment and Deployment Kit\Deployment Tools\$hostarchitecture\Oscdimg"
 $localOSCDIMGPath = "$PSScriptRoot\oscdimg.exe"
@@ -615,11 +576,16 @@ if ([System.IO.Directory]::Exists($ADKDepTools)) {
     $OSCDIMG = $localOSCDIMGPath
 }
 
-& "$OSCDIMG" '-m' '-o' '-u2' '-udfver102' "-bootdata:2#p0,e,b$mainOSDrive\WinAurex\boot\etfsboot.com#pEF,e,b$mainOSDrive\WinAurex\efi\microsoft\boot\efisys.bin" "$mainOSDrive\WinAurex" "$PSScriptRoot\WinAurex.iso"
+# Native prompt bypass for BIOS
+if (Test-Path "$mainOSDrive\WinAurex\boot\bootfix.bin") {
+    Remove-Item "$mainOSDrive\WinAurex\boot\bootfix.bin" -Force -ErrorAction SilentlyContinue
+}
+
+& "$OSCDIMG" '-m' '-o' '-u2' '-udfver102' "-bootdata:2#p0,e,b$mainOSDrive\WinAurex\boot\etfsboot.com#pEF,e,b$PSScriptRoot\efisys_direct_raw.bin" "$mainOSDrive\WinAurex" "$PSScriptRoot\WinAurex.iso"
 
 # Finishing up
 Write-Host "Creation completed! Press any key to exit the script..."
-Read-Host "Press Enter to continue"
+Write-Host "Done"
 Write-Host "Performing Cleanup..."
 Remove-Item -Path "$mainOSDrive\WinAurex" -Recurse -Force >null
 Remove-Item -Path "$mainOSDrive\scratchdir" -Recurse -Force >null
