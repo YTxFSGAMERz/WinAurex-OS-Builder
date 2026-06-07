@@ -23,8 +23,7 @@
     prefer the use of full named parameter (eg: "-ISO") as you can put in the order you want.
 
 .NOTES
-    Auteur: ntdevlabs
-    Date: 09-07-25
+    Auteur: Farhan
 #>
 
 #---------[ Parameters ]---------#
