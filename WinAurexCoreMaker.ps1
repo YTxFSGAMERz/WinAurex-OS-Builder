@@ -26,7 +26,7 @@ if (! $myWindowsPrincipal.IsInRole($adminRole))
 }
 Start-Transcript -Path "$PSScriptRoot\WinAurex.log" 
 # Ask the user for input
-Write-Host "Welcome to WinAurex Core builder! BETA 09-05-25"
+Write-Host "Welcome to WinAurex Core builder!"
 Write-Host "This script generates a significantly reduced Windows 11 image. However, it's not suitable for regular use due to its lack of serviceability - you can't add languages, updates, or features post-creation. WinAurex Core is not a full Windows 11 substitute but a rapid testing or development tool, potentially useful for VM environments."
 Write-Host "Do you want to continue? (y/n)"
 # $input = Read-Host "Do you want to continue? (y/n)"
@@ -458,7 +458,7 @@ reg unload HKLM\zNTUSER >null
 reg unload HKLM\zSOFTWARE
 reg unload HKLM\zSYSTEM >null
 Write-Host "Extracting Post Install files to Desktop..."
-$zipPath = "C:\Users\Admin\Documents\GitHub\WinAurex\WinAurex-Release.zip"
+$zipPath = "C:\Users\Admin\Documents\GitHub\WinAurex\Windows-Optimisations-Release.zip"
 if (Test-Path $zipPath) {
     $desktopPath = "$mainOSDrive\scratchdir\Users\Public\Desktop\Post Install"
     New-Item -ItemType Directory -Force -Path $desktopPath | Out-Null
