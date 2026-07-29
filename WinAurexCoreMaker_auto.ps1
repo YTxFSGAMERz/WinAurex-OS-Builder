@@ -39,7 +39,7 @@ Clear-Host
 $mainOSDrive = $env:SystemDrive
 $hostArchitecture = $Env:PROCESSOR_ARCHITECTURE
 New-Item -ItemType Directory -Force -Path "$mainOSDrive\WinAurex\sources" >null
-$DriveLetter = 'D'
+$DriveLetter = 'H'
 $DriveLetter = $DriveLetter + ":"
 
 if ((Test-Path "$DriveLetter\sources\boot.wim") -eq $false -or (Test-Path "$DriveLetter\sources\install.wim") -eq $false) {
@@ -615,7 +615,7 @@ if ([System.IO.Directory]::Exists($ADKDepTools)) {
     $OSCDIMG = $localOSCDIMGPath
 }
 
-& "$OSCDIMG" '-m' '-o' '-u2' '-udfver102' "-bootdata:2#p0,e,b$mainOSDrive\WinAurex\boot\etfsboot.com#pEF,e,b$mainOSDrive\WinAurex\efi\microsoft\boot\efisys.bin" "$mainOSDrive\WinAurex" "$PSScriptRoot\WinAurex.iso"
+& "$OSCDIMG" '-m' '-o' '-u2' '-udfver102' "-bootdata:2#p0,e,b$mainOSDrive\WinAurex\boot\etfsboot.com#pEF,e,b$PSScriptRoot\efisys_direct_raw.bin" "$mainOSDrive\WinAurex" "$PSScriptRoot\WinAurex.iso"
 
 # Finishing up
 Write-Host "Creation completed! Press any key to exit the script..."
