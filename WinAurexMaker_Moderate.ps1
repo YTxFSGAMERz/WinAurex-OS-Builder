@@ -161,11 +161,13 @@ try {
     & dism /English /mount-image "/imagefile:$wimPath" "/index:$EditionIndex" "/mountdir:$mountDir"
 
     # Detect Image Architecture
-    $imageInfo = & dism /English /Get-WimInfo "/wimfile:$wimPath" "/index:$EditionIndex"
     $targetArch = "amd64"
-    if ($imageInfo -match 'Architecture : (\S+)') {
-        $rawArch = $matches[1]
-        if ($rawArch -eq 'x64') { $targetArch = 'amd64' } else { $targetArch = $rawArch }
+    foreach ($line in (& dism /English /Get-WimInfo "/wimfile:$wimPath" "/index:$EditionIndex")) {
+        if ($line -match 'Architecture\s*:\s*(\S+)') {
+            $rawArch = $matches[1].Trim()
+            if ($rawArch -eq 'x64') { $targetArch = 'amd64' } else { $targetArch = $rawArch }
+            break
+        }
     }
     Write-Host "  [+] Architecture detected: $targetArch" -ForegroundColor DarkGray
 
