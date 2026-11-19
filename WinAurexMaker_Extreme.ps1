@@ -68,7 +68,7 @@ $mountedDrive = $null
 $wasMountedByScript = $false
 
 if ($ISO) {
-    if (Test-Path $ISO -PathType Leaf -and $ISO -like "*.iso") {
+    if ((Test-Path $ISO -PathType Leaf) -and ($ISO -like "*.iso")) {
         Write-Host "[*] Mounting provided ISO: $ISO" -ForegroundColor Cyan
         $mountResult = Mount-DiskImage -ImagePath (Resolve-Path $ISO).Path -PassThru
         $volume = Get-Volume -DiskImage $mountResult
@@ -146,7 +146,7 @@ try {
     Write-Host "`n[*] Copying Windows installation files to scratch directory..." -ForegroundColor Cyan
     robocopy "$mountedDrive" "$stagingDir" /E /MT:16 /R:1 /W:1 /XD "System Volume Information" "`$RECYCLE.BIN" | Out-Null
 
-    if (Test-Path "$stagingDir\sources\install.esd" -and -not (Test-Path "$stagingDir\sources\install.wim")) {
+    if ((Test-Path "$stagingDir\sources\install.esd") -and -not (Test-Path "$stagingDir\sources\install.wim")) {
         Write-Host "[*] Exporting install.esd to install.wim in staging..." -ForegroundColor Cyan
         & dism /Export-Image /SourceImageFile:"$stagingDir\sources\install.esd" /SourceIndex:$EditionIndex /DestinationImageFile:"$stagingDir\sources\install.wim" /Compress:max /CheckIntegrity
         Remove-Item "$stagingDir\sources\install.esd" -Force -ErrorAction SilentlyContinue
