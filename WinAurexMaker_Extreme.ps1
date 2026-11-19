@@ -413,7 +413,7 @@ try {
     # 19. Safe Cleanup (NEVER touch repo files like oscdimg.exe or autounattend.xml)
     Write-Host "[*] Cleaning temporary build folders..." -ForegroundColor DarkGray
     foreach ($h in @('zCOMPONENTS','zDEFAULT','zNTUSER','zSOFTWARE','zSYSTEM')) {
-        reg unload "HKLM\$h" 2>&1 | Out-Null
+        cmd.exe /c "reg unload HKLM\$h >nul 2>&1"
     }
     if (Test-Path "$ScratchDisk\scratchdir") {
         try { dism /unmount-image "/mountdir:$ScratchDisk\scratchdir" /discard | Out-Null } catch {}
