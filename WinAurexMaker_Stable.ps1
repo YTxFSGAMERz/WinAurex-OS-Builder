@@ -251,18 +251,25 @@ try {
     $oemFolder = Join-Path $PSScriptRoot "OEM Info"
     if (Test-Path "$oemFolder\oemlogo.bmp") {
         $logoDest = "$mountDir\Windows\System32\oemlogo.bmp"
-        Copy-Item "$oemFolder\oemlogo.bmp" $logoDest -Force
+        if (Test-Path $logoDest) { & takeown /f $logoDest /a 2>&1 | Out-Null; & icacls $logoDest /grant Administrators:F /c /q 2>&1 | Out-Null }
+        Copy-Item "$oemFolder\oemlogo.bmp" $logoDest -Force -ErrorAction SilentlyContinue
     }
     if (Test-Path "$oemFolder\img0.jpg") {
         $wallDir = "$mountDir\Windows\Web\Wallpaper\Windows"
         if (-not (Test-Path $wallDir)) { New-Item -ItemType Directory -Path $wallDir -Force | Out-Null }
-        Copy-Item "$oemFolder\img0.jpg" "$wallDir\img0.jpg" -Force
-        Copy-Item "$oemFolder\img0.jpg" "$wallDir\img0_3840x2160.jpg" -Force
+        foreach ($wName in @('img0.jpg', 'img0_3840x2160.jpg')) {
+            $wDest = "$wallDir\$wName"
+            if (Test-Path $wDest) { & takeown /f $wDest /a 2>&1 | Out-Null; & icacls $wDest /grant Administrators:F /c /q 2>&1 | Out-Null }
+            Copy-Item "$oemFolder\img0.jpg" $wDest -Force -ErrorAction SilentlyContinue
+        }
     }
     if (Test-Path "$oemFolder\img19.jpg") {
         $wallDir = "$mountDir\Windows\Web\Wallpaper\Windows"
-        Copy-Item "$oemFolder\img19.jpg" "$wallDir\img19.jpg" -Force
-        Copy-Item "$oemFolder\img19.jpg" "$wallDir\img19_3840x2160.jpg" -Force
+        foreach ($wName in @('img19.jpg', 'img19_3840x2160.jpg')) {
+            $wDest = "$wallDir\$wName"
+            if (Test-Path $wDest) { & takeown /f $wDest /a 2>&1 | Out-Null; & icacls $wDest /grant Administrators:F /c /q 2>&1 | Out-Null }
+            Copy-Item "$oemFolder\img19.jpg" $wDest -Force -ErrorAction SilentlyContinue
+        }
     }
 
     # 12. Hardware Bypasses & Clean Setup
@@ -345,11 +352,15 @@ try {
     reg unload HKLM\zSYSTEM | Out-Null
 
     if (Test-Path "$oemFolder\setup.bmp") {
-        Copy-Item "$oemFolder\setup.bmp" "$mountDir\sources\setup.bmp" -Force -ErrorAction SilentlyContinue
+        $setupBmp = "$mountDir\sources\setup.bmp"
+        if (Test-Path $setupBmp) { & takeown /f $setupBmp /a 2>&1 | Out-Null; & icacls $setupBmp /grant Administrators:F /c /q 2>&1 | Out-Null }
+        Copy-Item "$oemFolder\setup.bmp" $setupBmp -Force -ErrorAction SilentlyContinue
         Copy-Item "$oemFolder\setup.bmp" "$stagingDir\sources\background_cli.bmp" -Force -ErrorAction SilentlyContinue
     }
     if (Test-Path "$oemFolder\winpe.jpg") {
-        Copy-Item "$oemFolder\winpe.jpg" "$mountDir\Windows\System32\winpe.jpg" -Force -ErrorAction SilentlyContinue
+        $winpeJpg = "$mountDir\Windows\System32\winpe.jpg"
+        if (Test-Path $winpeJpg) { & takeown /f $winpeJpg /a 2>&1 | Out-Null; & icacls $winpeJpg /grant Administrators:F /c /q 2>&1 | Out-Null }
+        Copy-Item "$oemFolder\winpe.jpg" $winpeJpg -Force -ErrorAction SilentlyContinue
     }
 
     & dism /English /unmount-image "/mountdir:$mountDir" /commit
@@ -388,6 +399,9 @@ try {
 } finally {
     # 18. Safe Cleanup (NEVER touch repo files like oscdimg.exe or autounattend.xml)
     Write-Host "[*] Cleaning temporary build folders..." -ForegroundColor DarkGray
+    foreach ($h in @('zCOMPONENTS','zDEFAULT','zNTUSER','zSOFTWARE','zSYSTEM')) {
+        reg unload "HKLM\$h" 2>&1 | Out-Null
+    }
     if (Test-Path "$ScratchDisk\scratchdir") {
         try { dism /unmount-image "/mountdir:$ScratchDisk\scratchdir" /discard | Out-Null } catch {}
         Remove-Item "$ScratchDisk\scratchdir" -Recurse -Force -ErrorAction SilentlyContinue
