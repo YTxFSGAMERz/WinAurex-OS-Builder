@@ -1,0 +1,9 @@
+# WinAurex OS Builder Git Ignore Rules
+scratchdir/
+WinAurex/
+*.iso
+*.wim
+*.esd
+*.log
+*.tmp
+*.vbs

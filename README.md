@@ -1,7 +1,7 @@
 <div align="center">
 
 <!-- ANIMATED CAPSULE-RENDER VENOM HEADER -->
-![Header](https://capsule-render.vercel.app/api?type=venom&color=0:000000,100:00bcd4&height=220&text=WINAUREX%20OS%20BUILDER&fontColor=00bcd4&fontSize=65&fontAlignY=55&animation=twinkling&desc=Zero-Bloat+Windows+11+Image+Engineering&descColor=ffffff&descAlignY=75&descSize=22)
+![Header](https://capsule-render.vercel.app/api?type=venom&color=0:000000,100:00bcd4&height=220&text=WINAUREX%20OS%20BUILDER&fontColor=00bcd4&fontSize=65&fontAlignY=55&animation=twinkling&desc=3-Tier+Windows+11+Image+Engineering&descColor=ffffff&descAlignY=75&descSize=22)
 
 <br>
 
@@ -14,7 +14,7 @@
 
 <br>
 
-<kbd>&nbsp;Windows Image Engineering&nbsp;</kbd> &nbsp;•&nbsp; <kbd>&nbsp;Native DISM Tooling&nbsp;</kbd> &nbsp;•&nbsp; <kbd>&nbsp;Telemetry-Free Base&nbsp;</kbd> &nbsp;•&nbsp; <kbd>&nbsp;Open Source&nbsp;</kbd>
+<kbd>&nbsp;Windows Image Engineering&nbsp;</kbd> &nbsp;•&nbsp; <kbd>&nbsp;3 Dedicated Tiers&nbsp;</kbd> &nbsp;•&nbsp; <kbd>&nbsp;Native DISM Tooling&nbsp;</kbd> &nbsp;•&nbsp; <kbd>&nbsp;Post-Install Suite&nbsp;</kbd>
 
 <br><br>
 
@@ -28,7 +28,7 @@
   <a href="#"><img src="https://img.shields.io/badge/AUTOMATION-UNATTENDED_XML-9B59B6?style=for-the-badge&logo=xml&logoColor=9B59B6&labelColor=0D1117"></a>
   <br>
   <a href="#"><img src="https://img.shields.io/badge/SCRIPTS-OPEN_SOURCE-E74C3C?style=for-the-badge&logo=github&logoColor=E74C3C&labelColor=0D1117"></a>
-  <a href="#"><img src="https://img.shields.io/badge/LANGUAGE-POWERSHELL_7%2B-00bcd4?style=for-the-badge&logo=powershell&logoColor=00bcd4&labelColor=0D1117"></a>
+  <a href="#"><img src="https://img.shields.io/badge/LANGUAGE-POWERSHELL-00bcd4?style=for-the-badge&logo=powershell&logoColor=00bcd4&labelColor=0D1117"></a>
 </p>
 
 </div>
@@ -47,14 +47,14 @@
 
 <br>
 
-WinAurex OS Builder is an automated PowerShell script framework designed to strip down a standard Windows 11 installation image into a lightweight, high-performance, and privacy-respecting ISO (similar in concept to Tiny10/Tiny11).
+WinAurex OS Builder is an automated PowerShell script framework designed to compile an official Windows 11 installation image into a lightweight, high-performance, and privacy-respecting ISO.
 
-Instead of relying on third-party blackbox tools, it leverages native Microsoft binaries (`DISM` and `oscdimg`) to ensure complete transparency, safety, and lack of malware.
+Instead of relying on third-party blackbox utilities, it leverages native Microsoft binaries (`DISM` and `oscdimg`) to ensure complete transparency, safety, and system integrity.
 
 <div align="center">
 
 ```text
-[ STOCK ISO ] ──▶ [ DISM MOUNT ] ──▶ [ REGISTRY INJECTIONS & APP REMOVAL ] ──▶ [ OSCDIMG COMPILE ] ──▶ [ DEBLOATED ISO ]
+[ STOCK ISO ] ──▶ [ DISM MOUNT ] ──▶ [ REGISTRY & DEBLOAT PROFILES ] ──▶ [ OSCDIMG COMPILE ] ──▶ [ WINAUREX ISO ]
 ```
 
 </div>
@@ -62,23 +62,29 @@ Instead of relying on third-party blackbox tools, it leverages native Microsoft 
 <!-- ═══ ANIMATED DIVIDER ═══ -->
 <img src="https://user-images.githubusercontent.com/73097560/115834477-dbab4500-a447-11eb-908a-139a6edaec5c.gif" width="100%">
 
-<h2 align="center">⬛ CORE CAPABILITIES</h2>
+<h2 align="center">⬛ 3 SPECIALIZED BUILD TIERS</h2>
 
-### 🛡️ Hardware & Requirement Bypasses
-* **TPM 2.0 & Secure Boot:** Bypassed natively during the WinPE setup phase.
-* **CPU & RAM Restrictions:** Removes the hard lock for older hardware.
-* **Microsoft Account (MSA):** Enforces Local Account creation during OOBE.
+| Feature / Tier | 🟢 Tier 1: Stable Workstation | 🟡 Tier 2: Performance & Gaming | 🟣 Tier 3: Core Ultra-Lite |
+| :--- | :--- | :--- | :--- |
+| **Script** | `WinAurexMaker_Stable.ps1` | `WinAurexMaker_Moderate.ps1` | `WinAurexMaker_Extreme.ps1` |
+| **System Model** | `WinAurex Stable Workstation Edition` | `WinAurex Performance & Gaming Edition` | `WinAurex Core Ultra-Lite Edition` |
+| **Windows Update** | **100% Fully Functional** | **Disabled** (No surprise reboots) | **Disabled / Stripped** |
+| **WinGet & Store** | **100% Fully Functional** | **100% Fully Functional** | Optional / Stripped |
+| **Hardware Drivers** | **100% Intact & Untouched** | **100% Intact & Untouched** | Minimal baseline |
+| **Debloat Depth** | Consumer ads, promo games, tips | Stable + Xbox, Copilot, Teams, OneDrive | All Provisioned AppX + FODs + WinRE |
+| **Target Audience** | Workstations, daily drivers, modern rigs | High-FPS gaming, low latency, power users | Low-spec laptops, benchmark rigs, VMs |
 
-### 🗑️ Aggressive Debloating
-* Removes **Microsoft Edge** & **Edge WebView**.
-* Strips out **Copilot** and AI integrations.
-* Eliminates **OneDrive**, Teams, and Xbox integrations.
-* Purges 30+ Provisioned AppxPackages (Weather, News, Solitaire, etc.).
+<!-- ═══ ANIMATED DIVIDER ═══ -->
+<img src="https://user-images.githubusercontent.com/73097560/115834477-dbab4500-a447-11eb-908a-139a6edaec5c.gif" width="100%">
 
-### 🔒 Privacy & Telemetry
-* Injecting registry hives offline to disable telemetry collection.
-* Turns off Sponsored Apps and Content Delivery Manager.
-* Disables Advertising IDs and Cloud Content optimization.
+<h2 align="center">⬛ POST-INSTALL APPLICATION SUITE</h2>
+
+Every compiled WinAurex ISO automatically pre-stages a **Post Install** folder onto the Public Desktop and ISO root:
+* **Browsers**: 1-click silent installers for Brave, Google Chrome, and Mozilla Firefox.
+* **Office**: LibreOffice, ONLYOFFICE, and Microsoft 365 setup.
+* **Tools**: 7-Zip (offline installer included), Notepad++, VLC Media Player, Everything search, and Rufus.
+* **WinAurex Control**: Instant shortcuts to launch the WinAurex GUI Dashboard and full optimization engine.
+* **Master 1-Click Setup**: Run `Install_All_Recommended.cmd` to equip a fresh desktop with Brave, LibreOffice, 7-Zip, Notepad++, and VLC in seconds.
 
 <!-- ═══ ANIMATED DIVIDER ═══ -->
 <img src="https://user-images.githubusercontent.com/73097560/115834477-dbab4500-a447-11eb-908a-139a6edaec5c.gif" width="100%">
@@ -92,45 +98,27 @@ Instead of relying on third-party blackbox tools, it leverages native Microsoft 
 
 <br>
 
-**1. Prepare Your Files**
-Download an official Windows 11 ISO from Microsoft and mount it to a drive letter (e.g., `E:`).
-
-**2. Run The Builder**
-Execute the builder script as Administrator. Pass the mounted ISO drive and a Scratch drive (for temporary extraction).
-
-```powershell
-# Syntax: .\WinAurexMaker.ps1 -ISO <Mounted_Drive> -SCRATCH <Temp_Drive>
-PS> .\WinAurexMaker.ps1 -ISO E -SCRATCH D
+### Option A: 1-Click Batch Compiler (Recommended)
+Double-click `Build_WinAurex_ISO.cmd` as Administrator. It will automatically detect your Windows 11 ISO and let you choose your tier:
+```text
+Select Target OS Build Profile:
+ [1] Stable Workstation (Recommended) - WU + WinGet + Drivers 100% Working
+ [2] Performance & Gaming             - WinGet Working, Drivers Intact, WU Disabled
+ [3] Core Ultra-Lite                  - Extreme Debloat for Low-Spec VMs & Rigs
 ```
 
-**3. Wait for Compilation**
-The script will copy the ISO contents, convert `.esd` to `.wim` if necessary, mount the registry offline to apply tweaks, purge bloatware, and compile a brand new `WinAurex.iso` in the directory.
+### Option B: PowerShell CLI Engine
+```powershell
+# Syntax: .\WinAurexMaker.ps1 -Profile <Stable|Moderate|Extreme> [-ISO <Drive_or_ISO>] [-SCRATCH <Temp_Drive>]
+
+# Example: Build Stable Workstation Edition
+PS> .\WinAurexMaker.ps1 -Profile Stable -ISO E: -SCRATCH C:
+
+# Example: Build Gaming & Performance Edition
+PS> .\WinAurexMaker.ps1 -Profile Moderate -ISO E: -SCRATCH C:
+```
 
 </div>
-
-<!-- ═══ ANIMATED DIVIDER ═══ -->
-<img src="https://user-images.githubusercontent.com/73097560/115834477-dbab4500-a447-11eb-908a-139a6edaec5c.gif" width="100%">
-
-<h2 align="center">⬛ DOWNLOADING THE PRE-BUILT ISO</h2>
-
-If you prefer not to build the ISO yourself, you can download a pre-compiled version directly from our [Releases page](https://github.com/YTxFSGAMERz/WinAurex-OS-Builder/releases).
-
-**Instructions:**
-1. Navigate to the **Releases** section of this repository.
-2. Download both parts of the compressed ISO archive (`compressed1.7z.001` and `compressed1.7z.002`). *We've split the files into two parts to easily accommodate file size limits and fast downloading.*
-3. Place both files in the same directory.
-4. Right-click on `compressed1.7z.001` and use [7-Zip](https://www.7-zip.org/) (or WinRAR) to extract the files. The archive will automatically merge the two parts and extract the complete `WinAurex.iso`.
-
-<!-- ═══ ANIMATED DIVIDER ═══ -->
-<img src="https://user-images.githubusercontent.com/73097560/115834477-dbab4500-a447-11eb-908a-139a6edaec5c.gif" width="100%">
-
-<h2 align="center">⬛ USING THE SCRIPTS & AUTOUNATTEND.XML</h2>
-
-For a fully unattended Windows 11 installation that bypasses OOBE prompts, forces a local account, and applies essential tweaks automatically:
-
-1. Copy the `autounattend.xml` file to the root of your bootable USB installation media (created via Rufus or Ventoy).
-2. During the Windows setup process, this XML file will be automatically detected and processed, bypassing the Microsoft Account requirement and applying custom configurations on-the-fly.
-3. Once the installation is complete, you can run any post-install scripts provided to finalize your WinAurex setup.
 
 <!-- ═══ ANIMATED DIVIDER ═══ -->
 <img src="https://user-images.githubusercontent.com/73097560/115834477-dbab4500-a447-11eb-908a-139a6edaec5c.gif" width="100%">
@@ -143,9 +131,9 @@ For a fully unattended Windows 11 installation that bypasses OOBE prompts, force
 
 <br>
 
-WinAurex OS Builder is designed to be the foundational layer. Once you install your custom ISO, use our post-install framework to finalize the optimization process:
+WinAurex OS Builder is designed to be the foundational layer. Once you install your custom ISO, use our live web portal or local desktop dashboard:
 
-🔗 **[ACCESS THE WINAUREX LIVE OPTIMISATION DASHBOARD](https://winaurex.netlify.app/)**
+🔗 **[ACCESS THE WINAUREX OFFICIAL PORTAL](https://www.winaurex.tech)**
 
 </div>
 

@@ -1,0 +1,40 @@
+======================================================================
+                  WINAUREX OS POST-INSTALLATION GUIDE
+======================================================================
+
+Welcome to your freshly installed WinAurex Windows 11 system!
+
+This "Post Install" folder contains everything you need to quickly equip
+your PC with essential daily software and performance enhancements.
+
+----------------------------------------------------------------------
+QUICK START OPTIONS:
+----------------------------------------------------------------------
+1. ONE-CLICK INSTALLATION (RECOMMENDED):
+   Double-click "Install_All_Recommended.cmd".
+   This silently installs:
+    - Brave Browser (Fast, Chromium-based, built-in ad/tracker blocker)
+    - LibreOffice Suite (Full compatibility with Word, Excel, PowerPoint)
+    - 7-Zip (High-speed compression)
+    - Notepad++ (Lightweight, robust text and code editor)
+    - VLC Media Player (Plays all video and audio codecs)
+
+2. INDIVIDUAL APP INSTALLERS:
+   Explore the subfolders to install specific applications of your choice:
+    - 1-Browsers : Brave, Google Chrome, Mozilla Firefox
+    - 2-Office   : LibreOffice, ONLYOFFICE, Microsoft 365
+    - 3-Tools    : 7-Zip, Notepad++, VLC, Everything search, Rufus
+    - 4-WinAurex : Launch the WinAurex GUI Dashboard or apply system tweaks
+
+----------------------------------------------------------------------
+SYSTEM INTEGRATION & COMMAND LINE:
+----------------------------------------------------------------------
+- WinGet Package Manager is available directly from PowerShell or Command Prompt.
+  Example: winget install Discord.Discord
+           winget install Valve.Steam
+           winget install Spotify.Spotify
+
+- For community support, news, and additional optimization modules:
+  Website: https://www.winaurex.tech
+  Telegram: @FFShaikh69
+======================================================================

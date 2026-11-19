@@ -1,26 +1,18 @@
-OEM Information Registry Values
+WinAurex OEM Information Values
+====================================
 
+Manufacturer : WinAurex
+Author       : Farhan Shaikh
+SupportPhone : Telegram: @FFShaikh69
+SupportURL   : https://www.winaurex.tech
+SupportHours : 24/7 Community Support
+Author Info  : https://github.com/YTxFSGAMERz
 
-mail: f98561965@gmail.com
-phone: +91 7778906798 (Only for whatsapp)
+Target System Model by Build Profile:
+ - Tier 1 (Stable)   : WinAurex Stable Workstation Edition
+ - Tier 2 (Moderate) : WinAurex Performance & Gaming Edition
+ - Tier 3 (Extreme)  : WinAurex Core Ultra-Lite Edition
 
-
-
-Here are the typical fields you can set in
-HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\OEMInformation
-
-Manufacturer > WinAurex
-Author:  Farhan Shaikh
-
-Model: WinAurex 11 OS Pro
-
-SupportPhone: +91 7778906798
-
-Author Info: https://github.com/YTxFSGAMERz
-
-
-
-SupportURL : wa.me/917778906798
-
-SupportHours: Mon-Fri 9AM-5PM
-
+Logo Location: C:\Windows\System32\oemlogo.bmp
+Wallpapers   : C:\Windows\Web\Wallpaper\Windows\img0.jpg
+               C:\Windows\Web\Wallpaper\Windows\img19.jpg
