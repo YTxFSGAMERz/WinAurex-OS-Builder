@@ -122,7 +122,7 @@ if (-not $OutISO) {
 
 try {
     # 4. Prepare Staging Directories
-    $stagingDir = "$ScratchDisk\WinAurex"
+    $stagingDir = "$ScratchDisk\WinAurex_Staging"
     $mountDir = "$ScratchDisk\scratchdir"
 
     if (Test-Path $stagingDir) { Remove-Item $stagingDir -Recurse -Force -ErrorAction SilentlyContinue }
@@ -411,8 +411,8 @@ try {
         try { dism /unmount-image "/mountdir:$ScratchDisk\scratchdir" /discard | Out-Null } catch {}
         Remove-Item "$ScratchDisk\scratchdir" -Recurse -Force -ErrorAction SilentlyContinue
     }
-    if (Test-Path "$ScratchDisk\WinAurex") {
-        Remove-Item "$ScratchDisk\WinAurex" -Recurse -Force -ErrorAction SilentlyContinue
+    if (Test-Path "$ScratchDisk\WinAurex_Staging") {
+        Remove-Item "$ScratchDisk\WinAurex_Staging" -Recurse -Force -ErrorAction SilentlyContinue
     }
     if ($wasMountedByScript -and $mountedDrive) {
         Write-Host "[*] Dismounting source ISO..." -ForegroundColor DarkGray
