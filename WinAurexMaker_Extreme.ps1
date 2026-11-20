@@ -225,17 +225,16 @@ try {
         }
     }
 
-    # 10. Strip Edge, WinRE & OneDrive Setup
-    Write-Host "[*] Stripping Microsoft Edge binaries and WinRE..." -ForegroundColor Cyan
-    Remove-Item -Path "$mountDir\Program Files (x86)\Microsoft\Edge" -Recurse -Force -ErrorAction SilentlyContinue
+    # 10. Strip Edge Browser, WinRE & OneDrive Setup
+    Write-Host "[*] Stripping Microsoft Edge browser application and WinRE..." -ForegroundColor Cyan
+    # Strip Edge browser application but preserve EdgeCore / WebView2 runtime for system stability
+    Remove-Item -Path "$mountDir\Program Files (x86)\Microsoft\Edge\Application" -Recurse -Force -ErrorAction SilentlyContinue
     Remove-Item -Path "$mountDir\Program Files (x86)\Microsoft\EdgeUpdate" -Recurse -Force -ErrorAction SilentlyContinue
-    Remove-Item -Path "$mountDir\Program Files (x86)\Microsoft\EdgeCore" -Recurse -Force -ErrorAction SilentlyContinue
 
     if (Test-Path "$mountDir\Windows\System32\Recovery\winre.wim") {
         & takeown /f "$mountDir\Windows\System32\Recovery" /r | Out-Null
         & icacls "$mountDir\Windows\System32\Recovery" /grant "$($adminGroup.Value):(F)" /t /c | Out-Null
         Remove-Item "$mountDir\Windows\System32\Recovery\winre.wim" -Force -ErrorAction SilentlyContinue
-        New-Item -Path "$mountDir\Windows\System32\Recovery\winre.wim" -ItemType File -Force | Out-Null
     }
 
     if (Test-Path "$mountDir\Windows\System32\OneDriveSetup.exe") {
@@ -313,6 +312,16 @@ try {
     & reg add "HKLM\zSOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU" /v NoAutoUpdate /t REG_DWORD /d 1 /f | Out-Null
     & reg add "HKLM\zSOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU" /v AUOptions /t REG_DWORD /d 2 /f | Out-Null
 
+    # Disable WinRE AutoRecovery Agent
+    & reg add "HKLM\zSOFTWARE\Microsoft\Windows\CurrentVersion\ReAgent" /v AutoRecovery /t REG_DWORD /d 0 /f | Out-Null
+
+    # Disable Edge telemetry and background processes
+    & reg add "HKLM\zSOFTWARE\Policies\Microsoft\Edge" /v HubsSidebarEnabled /t REG_DWORD /d 0 /f | Out-Null
+    & reg add "HKLM\zSOFTWARE\Policies\Microsoft\Edge" /v ShowHomeButton /t REG_DWORD /d 1 /f | Out-Null
+    & reg add "HKLM\zSOFTWARE\Policies\Microsoft\Edge" /v HideFirstRunExperience /t REG_DWORD /d 1 /f | Out-Null
+    & reg add "HKLM\zSOFTWARE\Policies\Microsoft\Edge" /v StartupBoostEnabled /t REG_DWORD /d 0 /f | Out-Null
+    & reg add "HKLM\zSOFTWARE\Policies\Microsoft\Edge" /v BackgroundModeEnabled /t REG_DWORD /d 0 /f | Out-Null
+
     # 14. Pre-Stage "Post Install" Application Suite & autounattend.xml
     Write-Host "[*] Pre-staging 'Post Install' folder to Public Desktop..." -ForegroundColor Cyan
     $postInstallSource = Join-Path $PSScriptRoot "Post Install"
@@ -346,9 +355,9 @@ try {
     Write-Host "[*] Unmounting and committing changes to install.wim..." -ForegroundColor Cyan
     & dism /English /unmount-image "/mountdir:$mountDir" /commit
 
-    Write-Host "[*] Re-exporting install.wim with maximum recovery compression..." -ForegroundColor Cyan
+    Write-Host "[*] Re-exporting install.wim with maximum compression..." -ForegroundColor Cyan
     $tempWim = "$stagingDir\sources\install_clean.wim"
-    & dism /Export-Image /SourceImageFile:$wimPath /SourceIndex:$EditionIndex /DestinationImageFile:$tempWim /Compress:recovery
+    & dism /Export-Image /SourceImageFile:$wimPath /SourceIndex:$EditionIndex /DestinationImageFile:$tempWim /Compress:max
     Remove-Item $wimPath -Force
     Rename-Item $tempWim "install.wim"
 
@@ -384,6 +393,10 @@ try {
     if (Test-Path "$stagingDir\boot\bootfix.bin") {
         Remove-Item "$stagingDir\boot\bootfix.bin" -Force -ErrorAction SilentlyContinue
     }
+
+    # 17.1 Ensure clean installation channel without prompt
+    $eiCfg = "[Channel]`r`n_Default`r`n[VL]`r`n0"
+    Set-Content -Path "$stagingDir\sources\ei.cfg" -Value $eiCfg -Encoding Ascii -Force
 
     # 18. Compile Final Dual-Boot ISO
     Write-Host "`n[*] Compiling bootable ISO via oscdimg..." -ForegroundColor Cyan

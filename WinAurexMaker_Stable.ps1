@@ -370,6 +370,10 @@ try {
         Remove-Item "$stagingDir\boot\bootfix.bin" -Force -ErrorAction SilentlyContinue
     }
 
+    # Ensure clean installation channel without prompt
+    $eiCfg = "[Channel]`r`n_Default`r`n[VL]`r`n0"
+    Set-Content -Path "$stagingDir\sources\ei.cfg" -Value $eiCfg -Encoding Ascii -Force
+
     # 17. Compile Final Dual-Boot ISO
     Write-Host "`n[*] Compiling bootable ISO via oscdimg..." -ForegroundColor Cyan
     $localOscdimg = Join-Path $PSScriptRoot "oscdimg.exe"
