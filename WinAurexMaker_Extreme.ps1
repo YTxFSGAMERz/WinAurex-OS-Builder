@@ -145,6 +145,7 @@ try {
     # 6. Copy Windows Installation Base Media
     Write-Host "`n[*] Copying Windows installation files to scratch directory..." -ForegroundColor Cyan
     robocopy "$mountedDrive" "$stagingDir" /E /MT:16 /R:1 /W:1 /XD "System Volume Information" "`$RECYCLE.BIN" | Out-Null
+    cmd.exe /c "attrib -r `"$stagingDir\*`" /s /d >nul 2>&1"
 
     if ((Test-Path "$stagingDir\sources\install.esd") -and -not (Test-Path "$stagingDir\sources\install.wim")) {
         Write-Host "[*] Exporting install.esd to install.wim in staging..." -ForegroundColor Cyan
@@ -334,10 +335,22 @@ try {
         robocopy $postInstallSource $isoPostInstall /E /NJH /NJS /NDL /NC /NS | Out-Null
     }
 
+    # 14. Pre-Stage Unattended Configuration (Offline Sysprep Injection)
+    Write-Host "[*] Staging unattended answer file to offline system..." -ForegroundColor Cyan
     $xmlSource = Join-Path $PSScriptRoot "autounattend.xml"
     if (Test-Path $xmlSource) {
-        Copy-Item $xmlSource "$mountDir\Windows\System32\Sysprep\autounattend.xml" -Force | Out-Null
-        Copy-Item $xmlSource "$stagingDir\autounattend.xml" -Force | Out-Null
+        $sysprepDir = "$mountDir\Windows\System32\Sysprep"
+        $pantherDir = "$mountDir\Windows\Panther"
+        if (-not (Test-Path $sysprepDir)) { New-Item -ItemType Directory -Path $sysprepDir -Force | Out-Null }
+        if (-not (Test-Path $pantherDir)) { New-Item -ItemType Directory -Path $pantherDir -Force | Out-Null }
+        Copy-Item $xmlSource "$sysprepDir\unattend.xml" -Force | Out-Null
+        Copy-Item $xmlSource "$pantherDir\unattend.xml" -Force | Out-Null
+        # Register unattended answer file for Phase 2 OOBE execution
+        & reg add "HKLM\zSYSTEM\Setup" /v UnattendFile /t REG_SZ /d "C:\Windows\System32\Sysprep\unattend.xml" /f | Out-Null
+    }
+    # Ensure NO autounattend.xml exists at the root of the ISO (avoids 24H2/26H2 WinPE unattended crash)
+    if (Test-Path "$stagingDir\autounattend.xml") {
+        Remove-Item "$stagingDir\autounattend.xml" -Force -ErrorAction SilentlyContinue
     }
 
     # 15. Unload Registry
@@ -355,11 +368,20 @@ try {
     Write-Host "[*] Unmounting and committing changes to install.wim..." -ForegroundColor Cyan
     & dism /English /unmount-image "/mountdir:$mountDir" /commit
 
-    Write-Host "[*] Re-exporting install.wim with maximum compression..." -ForegroundColor Cyan
-    $tempWim = "$stagingDir\sources\install_clean.wim"
-    & dism /Export-Image /SourceImageFile:$wimPath /SourceIndex:$EditionIndex /DestinationImageFile:$tempWim /Compress:max
-    Remove-Item $wimPath -Force
-    Rename-Item $tempWim "install.wim"
+    Write-Host "[*] Exporting to install.esd with maximum recovery compression (5.1GB target)..." -ForegroundColor Cyan
+    $esdPath = "$stagingDir\sources\install.esd"
+    if (Test-Path $esdPath) { Remove-Item $esdPath -Force -ErrorAction SilentlyContinue }
+    & dism /Export-Image /SourceImageFile:$wimPath /SourceIndex:$EditionIndex /DestinationImageFile:$esdPath /Compress:recovery /CheckIntegrity
+    if (Test-Path $esdPath) {
+        Remove-Item $wimPath -Force -ErrorAction SilentlyContinue
+        Write-Host "  [+] install.esd created successfully ($([math]::Round((Get-Item $esdPath).Length / 1GB, 2)) GB)" -ForegroundColor Green
+    } else {
+        Write-Warning "ESD export failed, falling back to max-compressed install.wim"
+        $tempWim = "$stagingDir\sources\install_clean.wim"
+        & dism /Export-Image /SourceImageFile:$wimPath /SourceIndex:$EditionIndex /DestinationImageFile:$tempWim /Compress:max
+        Remove-Item $wimPath -Force
+        Rename-Item $tempWim "install.wim"
+    }
 
     # 17. Service boot.wim (WinPE & Setup)
     Write-Host "`n[*] Servicing boot.wim (Hardware bypasses in setup)..." -ForegroundColor Cyan
@@ -390,13 +412,25 @@ try {
 
     & dism /English /unmount-image "/mountdir:$mountDir" /commit
 
-    if (Test-Path "$stagingDir\boot\bootfix.bin") {
-        Remove-Item "$stagingDir\boot\bootfix.bin" -Force -ErrorAction SilentlyContinue
-    }
+    # 17.1 Retain bootfix.bin so system prompts before CD boot and avoids infinite reboot loops
+    Write-Host "[*] Retaining bootfix.bin for proper UEFI/BIOS boot prompt..." -ForegroundColor DarkGray
 
-    # 17.1 Ensure clean installation channel without prompt
-    $eiCfg = "[Channel]`r`n_Default`r`n[VL]`r`n0"
+    # 17.2 Setup Media Configuration (PID.txt, ei.cfg, appraiserres bypass for 24H2/26H2)
+    Write-Host "[*] Configuring Modern Setup media (ei.cfg, PID.txt, appraiserres bypass)..." -ForegroundColor Cyan
+    $eiCfg = "[EditionID]`r`nProfessional`r`n[Channel]`r`nRetail`r`n[VL]`r`n0"
     Set-Content -Path "$stagingDir\sources\ei.cfg" -Value $eiCfg -Encoding Ascii -Force
+
+    $pidTxt = "[PID]`r`nValue=VK7JG-NPHTM-C97JM-9MPGT-3V66T"
+    Set-Content -Path "$stagingDir\sources\PID.txt" -Value $pidTxt -Encoding Ascii -Force
+
+    # Zero-byte dummy appraiserres.dll bypasses all CPU, TPM, SecureBoot checks in 24H2/26H2 setup
+    $appraiser = "$stagingDir\sources\appraiserres.dll"
+    if (Test-Path $appraiser) {
+        Set-ItemProperty -Path $appraiser -Name IsReadOnly -Value $false -ErrorAction SilentlyContinue
+        (Get-Item $appraiser).Attributes = 'Normal'
+        Remove-Item $appraiser -Force -ErrorAction SilentlyContinue
+    }
+    New-Item -ItemType File -Path $appraiser -Force | Out-Null
 
     # 18. Compile Final Dual-Boot ISO
     Write-Host "`n[*] Compiling bootable ISO via oscdimg..." -ForegroundColor Cyan
@@ -413,7 +447,11 @@ try {
         "2#p0,e,b$stagingDir\boot\etfsboot.com#pEF,e,b$stagingDir\efi\microsoft\boot\efisys.bin"
     }
 
-    & $localOscdimg -m -o -u2 -udfver102 "-bootdata:$bootdata" "$stagingDir" "$OutISO"
+    $oscdimgArgs = "-m -o -u2 -udfver102 `"-bootdata:$bootdata`" `"$stagingDir`" `"$OutISO`""
+    $p = Start-Process -FilePath $localOscdimg -ArgumentList $oscdimgArgs -NoNewWindow -Wait -PassThru
+    if ($p.ExitCode -ne 0) {
+        throw "oscdimg failed with exit code $($p.ExitCode)"
+    }
 
     Write-Host "`n======================================================================" -ForegroundColor Green
     Write-Host " [SUCCESS] WinAurex Core Ultra-Lite ISO Compiled Successfully!        " -ForegroundColor White
