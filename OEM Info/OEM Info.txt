@@ -14,5 +14,3 @@ Target System Model by Build Profile:
  - Tier 3 (Extreme)  : WinAurex Core Ultra-Lite Edition
 
 Logo Location: C:\Windows\System32\oemlogo.bmp
-Wallpapers   : C:\Windows\Web\Wallpaper\Windows\img0.jpg
-               C:\Windows\Web\Wallpaper\Windows\img19.jpg

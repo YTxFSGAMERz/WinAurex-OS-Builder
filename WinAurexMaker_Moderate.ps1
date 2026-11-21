@@ -18,7 +18,7 @@
 param (
     [string]$ISO,
     [string]$SCRATCH,
-    [int]$EditionIndex = 1,
+    [int]$EditionIndex = 6,
     [switch]$Auto,
     [switch]$EnableNetFX3,
     [string]$OutISO
@@ -267,29 +267,12 @@ try {
     & reg add $oemKey /v Author /t REG_SZ /d "Farhan Shaikh" /f | Out-Null
     & reg add $oemKey /v "Author Info" /t REG_SZ /d "https://github.com/YTxFSGAMERz" /f | Out-Null
 
-    # Copy OEM logo & custom wallpapers
+    # Copy OEM logo
     $oemFolder = Join-Path $PSScriptRoot "OEM Info"
     if (Test-Path "$oemFolder\oemlogo.bmp") {
         $logoDest = "$mountDir\Windows\System32\oemlogo.bmp"
         if (Test-Path $logoDest) { & takeown /f $logoDest /a 2>&1 | Out-Null; & icacls $logoDest /grant Administrators:F /c /q 2>&1 | Out-Null }
         Copy-Item "$oemFolder\oemlogo.bmp" $logoDest -Force -ErrorAction SilentlyContinue
-    }
-    if (Test-Path "$oemFolder\img0.jpg") {
-        $wallDir = "$mountDir\Windows\Web\Wallpaper\Windows"
-        if (-not (Test-Path $wallDir)) { New-Item -ItemType Directory -Path $wallDir -Force | Out-Null }
-        foreach ($wName in @('img0.jpg', 'img0_3840x2160.jpg')) {
-            $wDest = "$wallDir\$wName"
-            if (Test-Path $wDest) { & takeown /f $wDest /a 2>&1 | Out-Null; & icacls $wDest /grant Administrators:F /c /q 2>&1 | Out-Null }
-            Copy-Item "$oemFolder\img0.jpg" $wDest -Force -ErrorAction SilentlyContinue
-        }
-    }
-    if (Test-Path "$oemFolder\img19.jpg") {
-        $wallDir = "$mountDir\Windows\Web\Wallpaper\Windows"
-        foreach ($wName in @('img19.jpg', 'img19_3840x2160.jpg')) {
-            $wDest = "$wallDir\$wName"
-            if (Test-Path $wDest) { & takeown /f $wDest /a 2>&1 | Out-Null; & icacls $wDest /grant Administrators:F /c /q 2>&1 | Out-Null }
-            Copy-Item "$oemFolder\img19.jpg" $wDest -Force -ErrorAction SilentlyContinue
-        }
     }
 
     # 12. Hardware Bypasses & Clean Setup
@@ -384,6 +367,7 @@ try {
     & reg add "HKLM\zSYSTEM\Setup\LabConfig" /v BypassRAMCheck /t REG_DWORD /d 1 /f | Out-Null
     & reg add "HKLM\zSYSTEM\Setup\LabConfig" /v BypassCPUCheck /t REG_DWORD /d 1 /f | Out-Null
     & reg add "HKLM\zSYSTEM\Setup\LabConfig" /v BypassStorageCheck /t REG_DWORD /d 1 /f | Out-Null
+    & reg add "HKLM\zSYSTEM\Setup\LabConfig" /v BypassDiskCheck /t REG_DWORD /d 1 /f | Out-Null
     & reg add "HKLM\zSYSTEM\Setup\MoSetup" /v AllowUpgradesWithUnsupportedTPMOrCPU /t REG_DWORD /d 1 /f | Out-Null
     reg unload HKLM\zSYSTEM | Out-Null
 
@@ -404,22 +388,20 @@ try {
     # 16.1 Retain bootfix.bin so system prompts before CD boot and avoids infinite reboot loops
     Write-Host "[*] Retaining bootfix.bin for proper UEFI/BIOS boot prompt..." -ForegroundColor DarkGray
 
-    # 16.2 Setup Media Configuration (PID.txt, ei.cfg, appraiserres bypass for 24H2/26H2)
-    Write-Host "[*] Configuring Modern Setup media (ei.cfg, PID.txt, appraiserres bypass)..." -ForegroundColor Cyan
-    $eiCfg = "[EditionID]`r`nProfessional`r`n[Channel]`r`nRetail`r`n[VL]`r`n0"
-    Set-Content -Path "$stagingDir\sources\ei.cfg" -Value $eiCfg -Encoding Ascii -Force
-
-    $pidTxt = "[PID]`r`nValue=VK7JG-NPHTM-C97JM-9MPGT-3V66T"
-    Set-Content -Path "$stagingDir\sources\PID.txt" -Value $pidTxt -Encoding Ascii -Force
-
-    # Zero-byte dummy appraiserres.dll bypasses all CPU, TPM, SecureBoot checks in 24H2/26H2 setup
+    # 16.2 Modern Setup Media Cleanup (Retain authentic appraiserres.dll, remove PID/ei conflicts)
+    Write-Host "[*] Preserving authentic Microsoft appraiserres.dll & cleaning setup media..." -ForegroundColor Cyan
+    if (Test-Path "$stagingDir\sources\PID.txt") {
+        Remove-Item "$stagingDir\sources\PID.txt" -Force -ErrorAction SilentlyContinue
+    }
+    if (Test-Path "$stagingDir\sources\ei.cfg") {
+        Remove-Item "$stagingDir\sources\ei.cfg" -Force -ErrorAction SilentlyContinue
+    }
     $appraiser = "$stagingDir\sources\appraiserres.dll"
     if (Test-Path $appraiser) {
         Set-ItemProperty -Path $appraiser -Name IsReadOnly -Value $false -ErrorAction SilentlyContinue
         (Get-Item $appraiser).Attributes = 'Normal'
-        Remove-Item $appraiser -Force -ErrorAction SilentlyContinue
+        Write-Host "  [+] Authentic appraiserres.dll preserved ($((Get-Item $appraiser).Length) bytes)" -ForegroundColor Green
     }
-    New-Item -ItemType File -Path $appraiser -Force | Out-Null
 
     # 17. Compile Final Dual-Boot ISO
     Write-Host "`n[*] Compiling bootable ISO via oscdimg..." -ForegroundColor Cyan

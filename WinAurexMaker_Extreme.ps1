@@ -17,7 +17,7 @@
 param (
     [string]$ISO,
     [string]$SCRATCH,
-    [int]$EditionIndex = 1,
+    [int]$EditionIndex = 6,
     [switch]$Auto,
     [switch]$EnableNetFX3,
     [string]$OutISO
@@ -114,6 +114,32 @@ if (-not $mountedDrive -or -not (Test-Path "$mountedDrive\sources\boot.wim")) {
 
 Write-Host "[+] Installation media resolved at: $mountedDrive" -ForegroundColor Green
 
+# Auto-resolve Windows 11 Pro if EditionIndex was not explicitly passed
+$targetSourceMedia = if (Test-Path "$mountedDrive\sources\install.wim") { "$mountedDrive\sources\install.wim" } else { "$mountedDrive\sources\install.esd" }
+if ($PSCmdlet.MyInvocation.BoundParameters.ContainsKey('EditionIndex')) {
+    Write-Host "[*] Using specified Edition Index: $EditionIndex" -ForegroundColor Cyan
+} else {
+    Write-Host "[*] Auto-detecting 'Windows 11 Pro' index in $targetSourceMedia..." -ForegroundColor Cyan
+    $wimInfo = & dism /English /Get-WimInfo "/WimFile:$targetSourceMedia"
+    $detectedIndex = 0
+    $curIdx = 0
+    foreach ($line in ($wimInfo -split "`r?`n")) {
+        if ($line -match '^Index\s*:\s*(\d+)') {
+            $curIdx = [int]$matches[1]
+        }
+        if ($line -match '^Name\s*:\s*Windows 11 Pro$') {
+            $detectedIndex = $curIdx
+            break
+        }
+    }
+    if ($detectedIndex -gt 0) {
+        $EditionIndex = $detectedIndex
+        Write-Host "  [+] Found 'Windows 11 Pro' at Index: $EditionIndex" -ForegroundColor Green
+    } else {
+        Write-Host "  [-] 'Windows 11 Pro' not found by name. Defaulting to Index: $EditionIndex" -ForegroundColor Yellow
+    }
+}
+
 # 3. Destination ISO Path
 if (-not $OutISO) {
     $OutISO = Join-Path $PSScriptRoot "WinAurex_Extreme.iso"
@@ -171,8 +197,8 @@ try {
     }
     Write-Host "  [+] Architecture detected: $targetArch" -ForegroundColor DarkGray
 
-    # 8. Extreme Debloating (All Provisioned AppX)
-    Write-Host "`n[*] Performing extreme AppX removal..." -ForegroundColor Cyan
+    # 8. Nuclear Debloating (Purge ALL Provisioned AppX)
+    Write-Host "`n[*] Performing 100% AppX annihilation..." -ForegroundColor Cyan
     $packagesRaw = & dism /English "/image:$mountDir" /Get-ProvisionedAppxPackages
     $allPackages = @()
     foreach ($line in ($packagesRaw -split "`r?`n")) {
@@ -181,67 +207,162 @@ try {
         }
     }
 
-    $extremePrefixes = @(
-        'Clipchamp.', 'Microsoft.Bing', 'Microsoft.Gaming', 'Microsoft.GetHelp', 'Microsoft.Getstarted',
-        'Microsoft.MicrosoftOffice', 'Microsoft.MicrosoftSolitaire', 'Microsoft.People', 'Microsoft.PowerAutomate',
-        'Microsoft.Todos', 'Microsoft.WindowsAlarms', 'microsoft.windowscommunicationsapps', 'Microsoft.WindowsFeedback',
-        'Microsoft.WindowsMaps', 'Microsoft.WindowsSoundRecorder', 'Microsoft.Xbox', 'Microsoft.YourPhone',
-        'Microsoft.Zune', 'MicrosoftCorporationII.MicrosoftFamily', 'MicrosoftCorporationII.QuickAssist',
-        'MicrosoftTeams', 'MSTeams', 'Microsoft.OutlookForWindows', 'Microsoft.Windows.Teams', 'Microsoft.Copilot',
-        'Microsoft.549981C3F5F10', 'Microsoft.WindowsCalculator', 'Microsoft.WindowsCamera', 'Microsoft.Paint',
-        'Microsoft.ScreenSketch', 'Microsoft.Windows.Photos', 'Microsoft.WindowsStore', 'Microsoft.DesktopAppInstaller',
-        'Microsoft.SecHealthUI', 'Microsoft.WindowsTerminal', 'Microsoft.Windows.Backup'
-    )
-
     foreach ($pkg in $allPackages) {
-        foreach ($prefix in $extremePrefixes) {
-            if ($pkg -like "$prefix*") {
-                Write-Host "  [-] Eradicating: $pkg" -ForegroundColor DarkGray
-                & dism /English "/image:$mountDir" /Remove-ProvisionedAppxPackage "/PackageName:$pkg" | Out-Null
+        Write-Host "  [-] Eradicating AppX: $pkg" -ForegroundColor DarkGray
+        & dism /English "/image:$mountDir" /Remove-ProvisionedAppxPackage "/PackageName:$pkg" | Out-Null
+    }
+
+    # 9. Extended FOD / Capability Removal (Massive Size Reduction)
+    Write-Host "[*] Stripping unused Windows Capabilities & FODs (Speech, Handwriting, OCR, Math)..." -ForegroundColor Cyan
+    $capsToPurge = @(
+        'Language.Handwriting*',
+        'Language.Speech*',
+        'Language.TextToSpeech*',
+        'Language.OCR*',
+        'App.StepsRecorder*',
+        'MathRecognizer*',
+        'Microsoft.Windows.WordPad*',
+        'Media.WindowsMediaPlayer*',
+        'Hello.Face*',
+        'App.Support.QuickAssist*',
+        'Microsoft.Windows.PowerShell.ISE*',
+        'OpenSSH.Client*',
+        'Print.Fax.Scan*',
+        'Print.Management.Console*',
+        'XPS.Foundation*'
+    )
+    $installedCaps = Get-WindowsCapability -Path $mountDir -ErrorAction SilentlyContinue | Where-Object { $_.State -eq 'Installed' }
+    foreach ($cap in $installedCaps) {
+        $shouldRemove = $false
+        foreach ($pattern in $capsToPurge) {
+            if ($cap.Name -like $pattern) {
+                $shouldRemove = $true
                 break
             }
         }
-    }
-
-    # 9. Optional FOD Package Removal
-    Write-Host "[*] Stripping legacy FOD optional packages..." -ForegroundColor Cyan
-    $fods = & dism "/image:$mountDir" /Get-Packages /Format:Table
-    $fodList = $fods -split "`n" | Select-Object -Skip 1
-    $fodPatterns = @(
-        "Microsoft-Windows-InternetExplorer-Optional-Package",
-        "Microsoft-Windows-MediaPlayer-Package",
-        "Microsoft-Windows-WordPad-FoD-Package",
-        "Microsoft-Windows-TabletPCMath-Package",
-        "Microsoft-Windows-StepsRecorder-Package",
-        "Microsoft-Windows-Hello-Face-Package"
-    )
-    foreach ($pat in $fodPatterns) {
-        $targets = $fodList | Where-Object { $_ -like "*$pat*" }
-        foreach ($t in $targets) {
-            $id = ($t -split "\s+")[0]
-            if ($id) {
-                Write-Host "  [-] Removing capability: $id" -ForegroundColor DarkGray
-                & dism "/image:$mountDir" /Remove-Package "/PackageName:$id" | Out-Null
-            }
+        if ($shouldRemove) {
+            Write-Host "  [-] Removing Capability: $($cap.Name)" -ForegroundColor DarkGray
+            Remove-WindowsCapability -Path $mountDir -Name $cap.Name -ErrorAction SilentlyContinue | Out-Null
         }
     }
 
-    # 10. Strip Edge Browser, WinRE & OneDrive Setup
-    Write-Host "[*] Stripping Microsoft Edge browser application and WinRE..." -ForegroundColor Cyan
-    # Strip Edge browser application but preserve EdgeCore / WebView2 runtime for system stability
-    Remove-Item -Path "$mountDir\Program Files (x86)\Microsoft\Edge\Application" -Recurse -Force -ErrorAction SilentlyContinue
-    Remove-Item -Path "$mountDir\Program Files (x86)\Microsoft\EdgeUpdate" -Recurse -Force -ErrorAction SilentlyContinue
+    # Disable Windows 11 Reserved Storage (reclaims 7.0 GB of hidden disk reservation)
+    Write-Host "[*] Disabling Reserved Storage state (reclaims 7GB disk footprint)..." -ForegroundColor Cyan
+    & dism /English "/image:$mountDir" /Set-ReservedStorageState /State:Disabled | Out-Null
 
-    if (Test-Path "$mountDir\Windows\System32\Recovery\winre.wim") {
-        & takeown /f "$mountDir\Windows\System32\Recovery" /r | Out-Null
-        & icacls "$mountDir\Windows\System32\Recovery" /grant "$($adminGroup.Value):(F)" /t /c | Out-Null
-        Remove-Item "$mountDir\Windows\System32\Recovery\winre.wim" -Force -ErrorAction SilentlyContinue
+    # 10. Bloat SystemApps Annihilation (AI, Copilot, Widgets, ContentDelivery)
+    Write-Host "[*] Annihilating bloat SystemApps (AI, Copilot, Widgets, Ads)..." -ForegroundColor Cyan
+    $systemAppsToPurge = @(
+        "Microsoft.Windows.ContentDeliveryManager_*",
+        "Microsoft.Windows.PeopleExperienceHost_*",
+        "Microsoft.XboxGameCallableUI_*",
+        "Microsoft.AIFabric.CBS.*",
+        "MicrosoftWindows.Client.CoreAI_*",
+        "MicrosoftWindows.Client.AIX_*",
+        "Microsoft.Copilot_*",
+        "MicrosoftWindows.Client.WebExperience_*",
+        "Microsoft.Windows.PinningConfirmationDialog_*",
+        "Microsoft.Windows.SecureAssessmentBrowser_*",
+        "Microsoft.SecHealthUI_*",
+        "Microsoft.Windows.SecHealthUI_*"
+    )
+    foreach ($appPat in $systemAppsToPurge) {
+        $foundDirs = Get-ChildItem -Path "$mountDir\Windows\SystemApps" -Filter $appPat -Directory -ErrorAction SilentlyContinue
+        foreach ($d in $foundDirs) {
+            Write-Host "  [-] Purging SystemApp: $($d.Name)" -ForegroundColor DarkGray
+            & takeown /f $d.FullName /r /d y 2>&1 | Out-Null
+            & icacls $d.FullName /grant "$($adminGroup.Value):(F)" /t /c /q 2>&1 | Out-Null
+            Remove-Item -Path $d.FullName -Recurse -Force -ErrorAction SilentlyContinue
+        }
+        # In Windows 11 24H2, SecHealthUI also resides in Program Files\WindowsApps
+        $winAppsDirs = Get-ChildItem -Path "$mountDir\Program Files\WindowsApps" -Filter $appPat -Directory -ErrorAction SilentlyContinue
+        foreach ($d in $winAppsDirs) {
+            Write-Host "  [-] Purging WindowsApp: $($d.Name)" -ForegroundColor DarkGray
+            & takeown /f $d.FullName /r /d y 2>&1 | Out-Null
+            & icacls $d.FullName /grant "$($adminGroup.Value):(F)" /t /c /q 2>&1 | Out-Null
+            Remove-Item -Path $d.FullName -Recurse -Force -ErrorAction SilentlyContinue
+        }
     }
 
-    if (Test-Path "$mountDir\Windows\System32\OneDriveSetup.exe") {
-        & takeown /f "$mountDir\Windows\System32\OneDriveSetup.exe" | Out-Null
-        & icacls "$mountDir\Windows\System32\OneDriveSetup.exe" /grant "$($adminGroup.Value):(F)" | Out-Null
-        Remove-Item "$mountDir\Windows\System32\OneDriveSetup.exe" -Force -ErrorAction SilentlyContinue
+    # Purge Windows Security Health staging directory
+    $secHealthDir = "$mountDir\Windows\System32\SecurityHealth"
+    if (Test-Path $secHealthDir) {
+        Write-Host "  [-] Purging SecurityHealth staging directory..." -ForegroundColor DarkGray
+        & takeown /f $secHealthDir /r /d y 2>&1 | Out-Null
+        & icacls $secHealthDir /grant "$($adminGroup.Value):(F)" /t /c /q 2>&1 | Out-Null
+        Remove-Item -Path $secHealthDir -Recurse -Force -ErrorAction SilentlyContinue
+    }
+
+    # Purge Defender and Security Health binaries
+    foreach ($secExe in @('SecurityHealthSystray.exe', 'SecurityHealthHost.exe', 'SecurityHealthService.exe', 'smartscreen.exe')) {
+        $secPath = "$mountDir\Windows\System32\$secExe"
+        if (Test-Path $secPath) {
+            & takeown /f $secPath /a 2>&1 | Out-Null
+            & icacls $secPath /grant "$($adminGroup.Value):(F)" /c /q 2>&1 | Out-Null
+            Remove-Item -Path $secPath -Force -ErrorAction SilentlyContinue
+        }
+    }
+
+    # Purge Windows Defender program directories
+    foreach ($defDir in @(
+        "$mountDir\Program Files\Windows Defender",
+        "$mountDir\Program Files (x86)\Windows Defender",
+        "$mountDir\ProgramData\Microsoft\Windows Defender",
+        "$mountDir\ProgramData\Microsoft\Windows Security Health"
+    )) {
+        if (Test-Path $defDir) {
+            Write-Host "  [-] Purging Defender folder: $defDir" -ForegroundColor DarkGray
+            & takeown /f $defDir /r /d y 2>&1 | Out-Null
+            & icacls $defDir /grant "$($adminGroup.Value):(F)" /t /c /q 2>&1 | Out-Null
+            Remove-Item -Path $defDir -Recurse -Force -ErrorAction SilentlyContinue
+        }
+    }
+
+    # 11. Edge & OneDrive Total Eradication
+    Write-Host "[*] Annihilating Microsoft Edge & OneDrive binaries..." -ForegroundColor Cyan
+    Remove-Item -Path "$mountDir\Program Files (x86)\Microsoft\Edge" -Recurse -Force -ErrorAction SilentlyContinue
+    Remove-Item -Path "$mountDir\Program Files (x86)\Microsoft\EdgeUpdate" -Recurse -Force -ErrorAction SilentlyContinue
+    Remove-Item -Path "$mountDir\Program Files (x86)\Microsoft\EdgeCore" -Recurse -Force -ErrorAction SilentlyContinue
+
+    foreach ($oneDriveExe in @("$mountDir\Windows\System32\OneDriveSetup.exe", "$mountDir\Windows\SysWOW64\OneDriveSetup.exe")) {
+        if (Test-Path $oneDriveExe) {
+            & takeown /f $oneDriveExe 2>&1 | Out-Null
+            & icacls $oneDriveExe /grant "$($adminGroup.Value):(F)" 2>&1 | Out-Null
+            Remove-Item $oneDriveExe -Force -ErrorAction SilentlyContinue
+        }
+    }
+
+    # 12. Physical WinRE Eradication (Direct-Deploy does not need SafeOS!)
+    Write-Host "[*] Physically eradicating WinRE recovery image (-700 MB)..." -ForegroundColor Cyan
+    if (Test-Path "$mountDir\Windows\System32\Recovery\winre.wim") {
+        & takeown /f "$mountDir\Windows\System32\Recovery" /r 2>&1 | Out-Null
+        & icacls "$mountDir\Windows\System32\Recovery" /grant "$($adminGroup.Value):(F)" /t /c 2>&1 | Out-Null
+        Remove-Item "$mountDir\Windows\System32\Recovery\winre.wim" -Force -ErrorAction SilentlyContinue
+        Write-Host "  [-] winre.wim permanently destroyed" -ForegroundColor Green
+    }
+
+    # 12.1 DriverStore Archaic Repository Pruning (Pruning ~1.2 GB of ancient printer/modem drivers)
+    Write-Host "[*] Pruning archaic inbox DriverStore repository (printers, modems, scanners)..." -ForegroundColor Cyan
+    $driverPatterns = @('prn*.inf_*', 'mdm*.inf_*', 'tape*.inf_*', 'scfilter*.inf_*')
+    foreach ($pat in $driverPatterns) {
+        $found = Get-ChildItem -Path "$mountDir\Windows\System32\DriverStore\FileRepository" -Filter $pat -Directory -ErrorAction SilentlyContinue
+        foreach ($d in $found) {
+            & takeown /f $d.FullName /r /d y 2>&1 | Out-Null
+            & icacls $d.FullName /grant "$($adminGroup.Value):(F)" /t /c /q 2>&1 | Out-Null
+            Remove-Item -Path $d.FullName -Recurse -Force -ErrorAction SilentlyContinue
+        }
+    }
+
+    # 12.2 Font & Localization Pruning (Saving ~700 MB of non-Latin Asian/archaic fonts)
+    Write-Host "[*] Pruning non-Latin localized fonts (saving ~700 MB)..." -ForegroundColor Cyan
+    $fontsToPurge = @('msyh*.ttc', 'msjh*.ttc', 'simsun*.ttc', 'mingliu*.ttc', 'msgothic*.ttc', 'malgun*.ttc', 'gulim*.ttc', 'batang*.ttc', 'ebrima*.ttf', 'khmer*.ttf', 'lao*.ttf', 'mymr*.ttf', 'gadugi*.ttf')
+    foreach ($f in $fontsToPurge) {
+        $foundFonts = Get-ChildItem -Path "$mountDir\Windows\Fonts" -Filter $f -ErrorAction SilentlyContinue
+        foreach ($file in $foundFonts) {
+            & takeown /f $file.FullName /a 2>&1 | Out-Null
+            & icacls $file.FullName /grant "$($adminGroup.Value):(F)" /c /q 2>&1 | Out-Null
+            Remove-Item -Path $file.FullName -Force -ErrorAction SilentlyContinue
+        }
     }
 
     # 11. Load Offline Registry Hives
@@ -255,14 +376,14 @@ try {
     # 12. Injects WinAurex Core Ultra-Lite OEM Branding
     Write-Host "[*] Injecting 'WinAurex Core Ultra-Lite Edition' OEM Branding..." -ForegroundColor Cyan
     $oemKey = "HKLM\zSOFTWARE\Microsoft\Windows\CurrentVersion\OEMInformation"
-    & reg add $oemKey /v Manufacturer /t REG_SZ /d "WinAurex" /f | Out-Null
-    & reg add $oemKey /v Model /t REG_SZ /d "WinAurex Core Ultra-Lite Edition" /f | Out-Null
-    & reg add $oemKey /v SupportURL /t REG_SZ /d "https://www.winaurex.tech" /f | Out-Null
-    & reg add $oemKey /v SupportPhone /t REG_SZ /d "Telegram: @FFShaikh69" /f | Out-Null
-    & reg add $oemKey /v SupportHours /t REG_SZ /d "24/7 Community Support" /f | Out-Null
-    & reg add $oemKey /v Logo /t REG_SZ /d "C:\Windows\System32\oemlogo.bmp" /f | Out-Null
-    & reg add $oemKey /v Author /t REG_SZ /d "Farhan Shaikh" /f | Out-Null
-    & reg add $oemKey /v "Author Info" /t REG_SZ /d "https://github.com/YTxFSGAMERz" /f | Out-Null
+    cmd.exe /c "reg add `"$oemKey`" /v Manufacturer /t REG_SZ /d `"WinAurex`" /f >nul 2>&1"
+    cmd.exe /c "reg add `"$oemKey`" /v Model /t REG_SZ /d `"WinAurex Core Ultra-Lite Edition`" /f >nul 2>&1"
+    cmd.exe /c "reg add `"$oemKey`" /v SupportURL /t REG_SZ /d `"https://www.winaurex.tech`" /f >nul 2>&1"
+    cmd.exe /c "reg add `"$oemKey`" /v SupportPhone /t REG_SZ /d `"Telegram: @FFShaikh69`" /f >nul 2>&1"
+    cmd.exe /c "reg add `"$oemKey`" /v SupportHours /t REG_SZ /d `"24/7 Community Support`" /f >nul 2>&1"
+    cmd.exe /c "reg add `"$oemKey`" /v Logo /t REG_SZ /d `"C:\Windows\System32\oemlogo.bmp`" /f >nul 2>&1"
+    cmd.exe /c "reg add `"$oemKey`" /v Author /t REG_SZ /d `"Farhan Shaikh`" /f >nul 2>&1"
+    cmd.exe /c "reg add `"$oemKey`" /v `"Author Info`" /t REG_SZ /d `"https://github.com/YTxFSGAMERz`" /f >nul 2>&1"
 
     $oemFolder = Join-Path $PSScriptRoot "OEM Info"
     if (Test-Path "$oemFolder\oemlogo.bmp") {
@@ -270,58 +391,192 @@ try {
         if (Test-Path $logoDest) { & takeown /f $logoDest /a 2>&1 | Out-Null; & icacls $logoDest /grant Administrators:F /c /q 2>&1 | Out-Null }
         Copy-Item "$oemFolder\oemlogo.bmp" $logoDest -Force -ErrorAction SilentlyContinue
     }
-    if (Test-Path "$oemFolder\img0.jpg") {
-        $wallDir = "$mountDir\Windows\Web\Wallpaper\Windows"
-        if (-not (Test-Path $wallDir)) { New-Item -ItemType Directory -Path $wallDir -Force | Out-Null }
-        foreach ($wName in @('img0.jpg', 'img0_3840x2160.jpg')) {
-            $wDest = "$wallDir\$wName"
-            if (Test-Path $wDest) { & takeown /f $wDest /a 2>&1 | Out-Null; & icacls $wDest /grant Administrators:F /c /q 2>&1 | Out-Null }
-            Copy-Item "$oemFolder\img0.jpg" $wDest -Force -ErrorAction SilentlyContinue
-        }
-    }
-    if (Test-Path "$oemFolder\img19.jpg") {
-        $wallDir = "$mountDir\Windows\Web\Wallpaper\Windows"
-        foreach ($wName in @('img19.jpg', 'img19_3840x2160.jpg')) {
-            $wDest = "$wallDir\$wName"
-            if (Test-Path $wDest) { & takeown /f $wDest /a 2>&1 | Out-Null; & icacls $wDest /grant Administrators:F /c /q 2>&1 | Out-Null }
-            Copy-Item "$oemFolder\img19.jpg" $wDest -Force -ErrorAction SilentlyContinue
-        }
-    }
 
     # 13. Hardware Bypasses & Clean Setup
     Write-Host "[*] Injecting hardware bypasses (TPM 2.0, Secure Boot, RAM, CPU, Storage, BitLocker)..." -ForegroundColor Cyan
-    & reg add "HKLM\zSYSTEM\Setup\LabConfig" /v BypassTPMCheck /t REG_DWORD /d 1 /f | Out-Null
-    & reg add "HKLM\zSYSTEM\Setup\LabConfig" /v BypassSecureBootCheck /t REG_DWORD /d 1 /f | Out-Null
-    & reg add "HKLM\zSYSTEM\Setup\LabConfig" /v BypassRAMCheck /t REG_DWORD /d 1 /f | Out-Null
-    & reg add "HKLM\zSYSTEM\Setup\LabConfig" /v BypassCPUCheck /t REG_DWORD /d 1 /f | Out-Null
-    & reg add "HKLM\zSYSTEM\Setup\LabConfig" /v BypassStorageCheck /t REG_DWORD /d 1 /f | Out-Null
-    & reg add "HKLM\zSYSTEM\Setup\MoSetup" /v AllowUpgradesWithUnsupportedTPMOrCPU /t REG_DWORD /d 1 /f | Out-Null
-    & reg add "HKLM\zSYSTEM\ControlSet001\Control\BitLocker" /v PreventDeviceEncryption /t REG_DWORD /d 1 /f | Out-Null
-    & reg add "HKLM\zSOFTWARE\Microsoft\Windows\CurrentVersion\OOBE" /v BypassNRO /t REG_DWORD /d 1 /f | Out-Null
+    cmd.exe /c "reg add `"HKLM\zSYSTEM\Setup\LabConfig`" /v BypassTPMCheck /t REG_DWORD /d 1 /f >nul 2>&1"
+    cmd.exe /c "reg add `"HKLM\zSYSTEM\Setup\LabConfig`" /v BypassSecureBootCheck /t REG_DWORD /d 1 /f >nul 2>&1"
+    cmd.exe /c "reg add `"HKLM\zSYSTEM\Setup\LabConfig`" /v BypassRAMCheck /t REG_DWORD /d 1 /f >nul 2>&1"
+    cmd.exe /c "reg add `"HKLM\zSYSTEM\Setup\LabConfig`" /v BypassCPUCheck /t REG_DWORD /d 1 /f >nul 2>&1"
+    cmd.exe /c "reg add `"HKLM\zSYSTEM\Setup\LabConfig`" /v BypassStorageCheck /t REG_DWORD /d 1 /f >nul 2>&1"
+    cmd.exe /c "reg add `"HKLM\zSYSTEM\Setup\MoSetup`" /v AllowUpgradesWithUnsupportedTPMOrCPU /t REG_DWORD /d 1 /f >nul 2>&1"
+    cmd.exe /c "reg add `"HKLM\zSYSTEM\ControlSet001\Control\BitLocker`" /v PreventDeviceEncryption /t REG_DWORD /d 1 /f >nul 2>&1"
+    cmd.exe /c "reg add `"HKLM\zSOFTWARE\Microsoft\Windows\CurrentVersion\OOBE`" /v BypassNRO /t REG_DWORD /d 1 /f >nul 2>&1"
 
-    # Disable consumer ads, promo pins, and telemetry
-    & reg add "HKLM\zSOFTWARE\Policies\Microsoft\Windows\CloudContent" /v DisableWindowsConsumerFeatures /t REG_DWORD /d 1 /f | Out-Null
-    & reg add "HKLM\zSOFTWARE\Policies\Microsoft\Windows\CloudContent" /v DisableConsumerAccountStateContent /t REG_DWORD /d 1 /f | Out-Null
-    & reg add "HKLM\zNTUSER\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" /v OemPreInstalledAppsEnabled /t REG_DWORD /d 0 /f | Out-Null
-    & reg add "HKLM\zNTUSER\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" /v PreInstalledAppsEnabled /t REG_DWORD /d 0 /f | Out-Null
-    & reg add "HKLM\zNTUSER\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" /v SilentInstalledAppsEnabled /t REG_DWORD /d 0 /f | Out-Null
-    & reg add "HKLM\zSOFTWARE\Policies\Microsoft\Windows\DataCollection" /v AllowTelemetry /t REG_DWORD /d 0 /f | Out-Null
+    # =========================================================================
+    # SUPER-DEBLOAT: ERADICATE ACCOUNTS, PRIVACY/SECURITY & MICROSOFT 365 SLOP
+    # =========================================================================
+    Write-Host "[*] Eliminating Accounts, Windows Security, M365 slop & Privacy from Settings..." -ForegroundColor Yellow
+    $settingsHide = "hide:home;account;yourinfo;emailandaccounts;signinoptions;otherusers;workplace;backup;windowsdefender;deviceencryption;findmydevice;privacy;privacy-general;privacy-speech;privacy-speechtyping;privacy-feedback;privacy-activityhistory;privacy-location;privacy-webcam;privacy-camera;privacy-microphone;privacy-notifications;privacy-accountinfo;privacy-contacts;privacy-calendar;privacy-phonecalls;privacy-callhistory;privacy-messaging;privacy-email;privacy-tasks;privacy-documents;privacy-downloadsfolder;privacy-pictures;privacy-videos;privacy-broadfilesystemaccess;privacy-automaticfiledownloads;privacy-radios;privacy-customdevices;privacy-motion;privacy-eyetracker;privacy-backgroundspatialperception;privacy-backgroundapps;privacy-appdiagnostics;cortana-windowssearch"
+    cmd.exe /c "reg add `"HKLM\zSOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer`" /v SettingsPageVisibility /t REG_SZ /d `"$settingsHide`" /f >nul 2>&1"
+    cmd.exe /c "reg add `"HKLM\zSOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer`" /v NoOnlineAccount /t REG_DWORD /d 1 /f >nul 2>&1"
+    cmd.exe /c "reg add `"HKLM\zNTUSER\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer`" /v SettingsPageVisibility /t REG_SZ /d `"$settingsHide`" /f >nul 2>&1"
+
+    # Eradicate Microsoft Account Promo Banner & Microsoft 365 Badges in Settings
+    cmd.exe /c "reg add `"HKLM\zSOFTWARE\Microsoft\PolicyManager\default\Settings\AllowYourAccount`" /v Value /t REG_DWORD /d 0 /f >nul 2>&1"
+    cmd.exe /c "reg add `"HKLM\zSOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System`" /v NoConnectedUser /t REG_DWORD /d 1 /f >nul 2>&1"
+    cmd.exe /c "reg add `"HKLM\zSOFTWARE\Policies\Microsoft\MicrosoftAccount`" /v DisableUserAuth /t REG_DWORD /d 1 /f >nul 2>&1"
+    cmd.exe /c "reg add `"HKLM\zSOFTWARE\Policies\Microsoft\Windows\CloudContent`" /v DisableConsumerAccountStateContent /t REG_DWORD /d 1 /f >nul 2>&1"
+    cmd.exe /c "reg add `"HKLM\zSOFTWARE\Policies\Microsoft\Windows\CloudContent`" /v DisableCloudOptimizedContent /t REG_DWORD /d 1 /f >nul 2>&1"
+    cmd.exe /c "reg add `"HKLM\zSOFTWARE\Policies\Microsoft\Windows\CloudContent`" /v DisableWindowsConsumerFeatures /t REG_DWORD /d 1 /f >nul 2>&1"
+    cmd.exe /c "reg add `"HKLM\zSOFTWARE\Policies\Microsoft\Windows\CloudContent`" /v DisableSoftLanding /t REG_DWORD /d 1 /f >nul 2>&1"
+    cmd.exe /c "reg add `"HKLM\zSOFTWARE\Policies\Microsoft\Windows\CloudContent`" /v DisableWindowsSpotlightFeatures /t REG_DWORD /d 1 /f >nul 2>&1"
+    cmd.exe /c "reg add `"HKLM\zSOFTWARE\Policies\Microsoft\Windows\CloudContent`" /v DisableTailoredExperiencesWithDiagnosticData /t REG_DWORD /d 1 /f >nul 2>&1"
+
+    # Disable Hibernation & Reserved Storage registry anchors (saves 10+ GB on disk)
+    cmd.exe /c "reg add `"HKLM\zSYSTEM\ControlSet001\Control\Power`" /v HibernateEnabled /t REG_DWORD /d 0 /f >nul 2>&1"
+    cmd.exe /c "reg add `"HKLM\zSOFTWARE\Microsoft\Windows\CurrentVersion\ReserveManager`" /v ShippedWithReserves /t REG_DWORD /d 0 /f >nul 2>&1"
+    cmd.exe /c "reg add `"HKLM\zSOFTWARE\Microsoft\Windows\CurrentVersion\ReserveManager`" /v BaseReservationManager /t REG_DWORD /d 0 /f >nul 2>&1"
+    # Fixed Virtual Memory / Pagefile Policy (prevents dynamic 4-8 GB swap ballooning)
+    cmd.exe /c "reg add `"HKLM\zSYSTEM\ControlSet001\Control\Session Manager\Memory Management`" /v PagingFiles /t REG_MULTI_SZ /d `"C:\pagefile.sys 1024 2048`" /f >nul 2>&1"
+
+    # Annihilate Windows Defender Security Center UI & Systray
+    cmd.exe /c "reg add `"HKLM\zSOFTWARE\Policies\Microsoft\Windows Defender Security Center\Systray`" /v HideSystray /t REG_DWORD /d 1 /f >nul 2>&1"
+    foreach ($cat in @('Account protection', 'App and browser protection', 'Device performance and health', 'Device security', 'Family options', 'Firewall and network protection', 'Virus and threat protection')) {
+        cmd.exe /c "reg add `"HKLM\zSOFTWARE\Policies\Microsoft\Windows Defender Security Center\$cat`" /v UILockdown /t REG_DWORD /d 1 /f >nul 2>&1"
+    }
+
+    # Disable All Settings & Cloud Sync Engines
+    cmd.exe /c "reg add `"HKLM\zSOFTWARE\Policies\Microsoft\Windows\SettingSync`" /v DisableSettingSync /t REG_DWORD /d 2 /f >nul 2>&1"
+    cmd.exe /c "reg add `"HKLM\zSOFTWARE\Policies\Microsoft\Windows\SettingSync`" /v DisableSettingSyncUserOverride /t REG_DWORD /d 1 /f >nul 2>&1"
+    cmd.exe /c "reg add `"HKLM\zSOFTWARE\Policies\Microsoft\Windows\SettingSync`" /v DisableApplicationSettingSync /t REG_DWORD /d 2 /f >nul 2>&1"
+    cmd.exe /c "reg add `"HKLM\zSOFTWARE\Policies\Microsoft\Windows\SettingSync`" /v DisableCredentialsSettingSync /t REG_DWORD /d 2 /f >nul 2>&1"
+    cmd.exe /c "reg add `"HKLM\zSOFTWARE\Policies\Microsoft\Windows\SettingSync`" /v DisableDesktopThemeSettingSync /t REG_DWORD /d 2 /f >nul 2>&1"
+    cmd.exe /c "reg add `"HKLM\zSOFTWARE\Policies\Microsoft\Windows\SettingSync`" /v DisablePersonalizationSettingSync /t REG_DWORD /d 2 /f >nul 2>&1"
+    cmd.exe /c "reg add `"HKLM\zSOFTWARE\Policies\Microsoft\Windows\SettingSync`" /v DisableWebBrowserSettingSync /t REG_DWORD /d 2 /f >nul 2>&1"
+    cmd.exe /c "reg add `"HKLM\zSOFTWARE\Policies\Microsoft\Windows\SettingSync`" /v DisableWindowsSettingSync /t REG_DWORD /d 2 /f >nul 2>&1"
+
+    # Disable Windows Hello / Passport Prompts
+    cmd.exe /c "reg add `"HKLM\zSOFTWARE\Policies\Microsoft\PassportForWork`" /v Enabled /t REG_DWORD /d 0 /f >nul 2>&1"
+    cmd.exe /c "reg add `"HKLM\zSOFTWARE\Policies\Microsoft\PassportForWork`" /v DisablePostLogonProvisioning /t REG_DWORD /d 1 /f >nul 2>&1"
+
+    # Privacy, Advertising, and Consumer Bloat Annihilation
+    cmd.exe /c "reg add `"HKLM\zSOFTWARE\Microsoft\Windows\CurrentVersion\AdvertisingInfo`" /v Enabled /t REG_DWORD /d 0 /f >nul 2>&1"
+    cmd.exe /c "reg add `"HKLM\zSOFTWARE\Policies\Microsoft\Windows\CloudContent`" /v DisableWindowsConsumerFeatures /t REG_DWORD /d 1 /f >nul 2>&1"
+    cmd.exe /c "reg add `"HKLM\zSOFTWARE\Policies\Microsoft\Windows\CloudContent`" /v DisableConsumerAccountStateContent /t REG_DWORD /d 1 /f >nul 2>&1"
+    cmd.exe /c "reg add `"HKLM\zSOFTWARE\Policies\Microsoft\Windows\CloudContent`" /v DisableSoftLanding /t REG_DWORD /d 1 /f >nul 2>&1"
+    cmd.exe /c "reg add `"HKLM\zSOFTWARE\Policies\Microsoft\Windows\CloudContent`" /v DisableWindowsSpotlightFeatures /t REG_DWORD /d 1 /f >nul 2>&1"
+    cmd.exe /c "reg add `"HKLM\zSOFTWARE\Policies\Microsoft\Windows\CloudContent`" /v DisableTailoredExperiencesWithDiagnosticData /t REG_DWORD /d 1 /f >nul 2>&1"
+
+    # Speech & Inking Personalization (Online Speech & Custom Dictionary Harvest)
+    cmd.exe /c "reg add `"HKLM\zSOFTWARE\Policies\Microsoft\InputPersonalization`" /v AllowInputPersonalization /t REG_DWORD /d 0 /f >nul 2>&1"
+    cmd.exe /c "reg add `"HKLM\zSOFTWARE\Policies\Microsoft\InputPersonalization`" /v RestrictImplicitInkCollection /t REG_DWORD /d 1 /f >nul 2>&1"
+    cmd.exe /c "reg add `"HKLM\zSOFTWARE\Policies\Microsoft\InputPersonalization`" /v RestrictImplicitTextCollection /t REG_DWORD /d 1 /f >nul 2>&1"
+    cmd.exe /c "reg add `"HKLM\zSOFTWARE\Policies\Microsoft\Speech`" /v AllowSpeechModelUpdate /t REG_DWORD /d 0 /f >nul 2>&1"
+
+    # Diagnostics, Telemetry, and Activity Tracking
+    cmd.exe /c "reg add `"HKLM\zSOFTWARE\Policies\Microsoft\Windows\DataCollection`" /v AllowTelemetry /t REG_DWORD /d 0 /f >nul 2>&1"
+    cmd.exe /c "reg add `"HKLM\zSOFTWARE\Policies\Microsoft\Windows\DataCollection`" /v MaxTelemetryAllowed /t REG_DWORD /d 0 /f >nul 2>&1"
+    cmd.exe /c "reg add `"HKLM\zSOFTWARE\Policies\Microsoft\Windows\DataCollection`" /v DoNotShowFeedbackNotifications /t REG_DWORD /d 1 /f >nul 2>&1"
+    cmd.exe /c "reg add `"HKLM\zSOFTWARE\Policies\Microsoft\Windows\DataCollection`" /v DisableOneSettingsDownloads /t REG_DWORD /d 1 /f >nul 2>&1"
+    cmd.exe /c "reg add `"HKLM\zSOFTWARE\Policies\Microsoft\Windows\System`" /v EnableActivityFeed /t REG_DWORD /d 0 /f >nul 2>&1"
+    cmd.exe /c "reg add `"HKLM\zSOFTWARE\Policies\Microsoft\Windows\System`" /v PublishUserActivities /t REG_DWORD /d 0 /f >nul 2>&1"
+    cmd.exe /c "reg add `"HKLM\zSOFTWARE\Policies\Microsoft\Windows\System`" /v UploadUserActivities /t REG_DWORD /d 0 /f >nul 2>&1"
+    cmd.exe /c "reg add `"HKLM\zSOFTWARE\Policies\Microsoft\Windows\System`" /v AllowClipboardHistory /t REG_DWORD /d 0 /f >nul 2>&1"
+    cmd.exe /c "reg add `"HKLM\zSOFTWARE\Policies\Microsoft\Windows\System`" /v AllowCrossDeviceClipboard /t REG_DWORD /d 0 /f >nul 2>&1"
+
+    # Location & Find My Device
+    cmd.exe /c "reg add `"HKLM\zSOFTWARE\Policies\Microsoft\FindMyDevice`" /v AllowFindMyDevice /t REG_DWORD /d 0 /f >nul 2>&1"
+    cmd.exe /c "reg add `"HKLM\zSOFTWARE\Policies\Microsoft\Windows\LocationAndSensors`" /v DisableLocation /t REG_DWORD /d 1 /f >nul 2>&1"
+    cmd.exe /c "reg add `"HKLM\zSOFTWARE\Policies\Microsoft\Windows\LocationAndSensors`" /v DisableLocationScripting /t REG_DWORD /d 1 /f >nul 2>&1"
+    cmd.exe /c "reg add `"HKLM\zSOFTWARE\Policies\Microsoft\Windows\LocationAndSensors`" /v DisableWindowsLocationProvider /t REG_DWORD /d 1 /f >nul 2>&1"
+    cmd.exe /c "reg add `"HKLM\zSOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\location`" /v Value /t REG_SZ /d `"Deny`" /f >nul 2>&1"
+
+    # GameDVR & Delivery Optimization
+    cmd.exe /c "reg add `"HKLM\zSOFTWARE\Policies\Microsoft\Windows\GameDVR`" /v AllowGameDVR /t REG_DWORD /d 0 /f >nul 2>&1"
+    cmd.exe /c "reg add `"HKLM\zSOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization`" /v DODownloadMode /t REG_DWORD /d 0 /f >nul 2>&1"
+
+    # User Profile (Default NTUSER) Tweaks: Recommendations & Offers, Tracking, ContentDelivery
+    cmd.exe /c "reg add `"HKLM\zNTUSER\Control Panel\International\User Profile`" /v HttpAcceptLanguageOptOut /t REG_DWORD /d 1 /f >nul 2>&1"
+    cmd.exe /c "reg add `"HKLM\zNTUSER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced`" /v Start_TrackProgs /t REG_DWORD /d 0 /f >nul 2>&1"
+    cmd.exe /c "reg add `"HKLM\zNTUSER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced`" /v Start_TrackDocs /t REG_DWORD /d 0 /f >nul 2>&1"
+    cmd.exe /c "reg add `"HKLM\zNTUSER\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager`" /v SubscribedContent-310093Enabled /t REG_DWORD /d 0 /f >nul 2>&1"
+    cmd.exe /c "reg add `"HKLM\zNTUSER\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager`" /v SubscribedContent-338388Enabled /t REG_DWORD /d 0 /f >nul 2>&1"
+    cmd.exe /c "reg add `"HKLM\zNTUSER\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager`" /v SubscribedContent-338389Enabled /t REG_DWORD /d 0 /f >nul 2>&1"
+    cmd.exe /c "reg add `"HKLM\zNTUSER\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager`" /v SubscribedContent-353694Enabled /t REG_DWORD /d 0 /f >nul 2>&1"
+    cmd.exe /c "reg add `"HKLM\zNTUSER\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager`" /v SubscribedContent-353696Enabled /t REG_DWORD /d 0 /f >nul 2>&1"
+    cmd.exe /c "reg add `"HKLM\zNTUSER\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager`" /v SubscribedContent-353698Enabled /t REG_DWORD /d 0 /f >nul 2>&1"
+    cmd.exe /c "reg add `"HKLM\zNTUSER\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager`" /v SystemPaneSuggestionsEnabled /t REG_DWORD /d 0 /f >nul 2>&1"
+    cmd.exe /c "reg add `"HKLM\zNTUSER\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager`" /v OemPreInstalledAppsEnabled /t REG_DWORD /d 0 /f >nul 2>&1"
+    cmd.exe /c "reg add `"HKLM\zNTUSER\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager`" /v PreInstalledAppsEnabled /t REG_DWORD /d 0 /f >nul 2>&1"
+    cmd.exe /c "reg add `"HKLM\zNTUSER\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager`" /v SilentInstalledAppsEnabled /t REG_DWORD /d 0 /f >nul 2>&1"
+    cmd.exe /c "reg add `"HKLM\zNTUSER\Software\Microsoft\Speech_OneCore\Settings\OnlineSpeechPrivacy`" /v HasAccepted /t REG_DWORD /d 0 /f >nul 2>&1"
+    cmd.exe /c "reg add `"HKLM\zNTUSER\Software\Microsoft\InputPersonalization`" /v RestrictImplicitInkCollection /t REG_DWORD /d 1 /f >nul 2>&1"
+    cmd.exe /c "reg add `"HKLM\zNTUSER\Software\Microsoft\InputPersonalization`" /v RestrictImplicitTextCollection /t REG_DWORD /d 1 /f >nul 2>&1"
+    cmd.exe /c "reg add `"HKLM\zNTUSER\Software\Microsoft\InputPersonalization\TrainedDataStore`" /v HarvestContacts /t REG_DWORD /d 0 /f >nul 2>&1"
+    cmd.exe /c "reg add `"HKLM\zNTUSER\Software\Microsoft\Windows\CurrentVersion\Privacy`" /v TailoredExperiencesWithDiagnosticDataEnabled /t REG_DWORD /d 0 /f >nul 2>&1"
+    cmd.exe /c "reg add `"HKLM\zNTUSER\Software\Microsoft\Windows\CurrentVersion\Search`" /v BingSearchEnabled /t REG_DWORD /d 0 /f >nul 2>&1"
+    cmd.exe /c "reg add `"HKLM\zNTUSER\Software\Microsoft\Windows\CurrentVersion\Search`" /v CortanaConsent /t REG_DWORD /d 0 /f >nul 2>&1"
+    cmd.exe /c "reg add `"HKLM\zNTUSER\Software\Microsoft\Windows\CurrentVersion\Search`" /v DeviceHistoryEnabled /t REG_DWORD /d 0 /f >nul 2>&1"
+    cmd.exe /c "reg add `"HKLM\zNTUSER\Software\Microsoft\Windows\CurrentVersion\Search`" /v HistoryViewEnabled /t REG_DWORD /d 0 /f >nul 2>&1"
+    cmd.exe /c "reg add `"HKLM\zNTUSER\Software\Microsoft\Windows\CurrentVersion\Search`" /v SearchboxTaskbarMode /t REG_DWORD /d 0 /f >nul 2>&1"
+    cmd.exe /c "reg add `"HKLM\zNTUSER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced`" /v ShowTaskViewButton /t REG_DWORD /d 0 /f >nul 2>&1"
+    cmd.exe /c "reg add `"HKLM\zNTUSER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced`" /v TaskbarMn /t REG_DWORD /d 0 /f >nul 2>&1"
+    cmd.exe /c "reg add `"HKLM\zNTUSER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced`" /v TaskbarDa /t REG_DWORD /d 0 /f >nul 2>&1"
+    cmd.exe /c "reg add `"HKLM\zNTUSER\Software\Microsoft\Windows\CurrentVersion\GameDVR`" /v AppCaptureEnabled /t REG_DWORD /d 0 /f >nul 2>&1"
 
     # TIER 3 EXTREME: DISABLE WINDOWS UPDATE FOR MAXIMUM RESOURCE REDUCTION
     Write-Host "[*] Disabling Windows Update services (Extreme Ultra-Lite Baseline)..." -ForegroundColor Yellow
-    & reg add "HKLM\zSYSTEM\ControlSet001\Services\wuauserv" /v Start /t REG_DWORD /d 4 /f | Out-Null
-    & reg add "HKLM\zSOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU" /v NoAutoUpdate /t REG_DWORD /d 1 /f | Out-Null
-    & reg add "HKLM\zSOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU" /v AUOptions /t REG_DWORD /d 2 /f | Out-Null
+    foreach ($svc in @('wuauserv', 'UsoSvc', 'WaaSMedicSvc')) {
+        cmd.exe /c "reg add `"HKLM\zSYSTEM\ControlSet001\Services\$svc`" /v Start /t REG_DWORD /d 4 /f >nul 2>&1"
+    }
+    cmd.exe /c "reg add `"HKLM\zSOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU`" /v NoAutoUpdate /t REG_DWORD /d 1 /f >nul 2>&1"
+    cmd.exe /c "reg add `"HKLM\zSOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU`" /v AUOptions /t REG_DWORD /d 2 /f >nul 2>&1"
+
+    # TIER 3 EXTREME: DISABLE WINDOWS DEFENDER & SMARTSCREEN (SUB-800MB RAM TARGET)
+    Write-Host "[*] Annihilating Windows Defender & SmartScreen services..." -ForegroundColor Yellow
+    cmd.exe /c "reg add `"HKLM\zSOFTWARE\Policies\Microsoft\Windows Defender`" /v DisableAntiSpyware /t REG_DWORD /d 1 /f >nul 2>&1"
+    cmd.exe /c "reg add `"HKLM\zSOFTWARE\Policies\Microsoft\Windows Defender`" /v DisableAntiVirus /t REG_DWORD /d 1 /f >nul 2>&1"
+    cmd.exe /c "reg add `"HKLM\zSOFTWARE\Policies\Microsoft\Windows Defender\Real-Time Protection`" /v DisableRealtimeMonitoring /t REG_DWORD /d 1 /f >nul 2>&1"
+    cmd.exe /c "reg add `"HKLM\zSOFTWARE\Policies\Microsoft\Windows Defender\Real-Time Protection`" /v DisableBehaviorMonitoring /t REG_DWORD /d 1 /f >nul 2>&1"
+    cmd.exe /c "reg add `"HKLM\zSOFTWARE\Policies\Microsoft\Windows Defender\Real-Time Protection`" /v DisableOnAccessProtection /t REG_DWORD /d 1 /f >nul 2>&1"
+    cmd.exe /c "reg add `"HKLM\zSOFTWARE\Policies\Microsoft\Windows Defender\Real-Time Protection`" /v DisableScanOnRealtimeEnable /t REG_DWORD /d 1 /f >nul 2>&1"
+    cmd.exe /c "reg add `"HKLM\zSOFTWARE\Policies\Microsoft\Windows Defender\Real-Time Protection`" /v DisableIOAVProtection /t REG_DWORD /d 1 /f >nul 2>&1"
+    cmd.exe /c "reg add `"HKLM\zSOFTWARE\Policies\Microsoft\Windows\System`" /v EnableSmartScreen /t REG_DWORD /d 0 /f >nul 2>&1"
+    cmd.exe /c "reg add `"HKLM\zSOFTWARE\Microsoft\Windows\CurrentVersion\Explorer`" /v SmartScreenEnabled /t REG_SZ /d `"Off`" /f >nul 2>&1"
+    cmd.exe /c "reg add `"HKLM\zSOFTWARE\Policies\Microsoft\Windows Defender Security Center\Systray`" /v HideSystray /t REG_DWORD /d 1 /f >nul 2>&1"
+    foreach ($cat in @("Account protection", "App and browser protection", "Device performance and health", "Device security", "Family options", "Firewall and network protection", "Virus and threat protection")) {
+        cmd.exe /c "reg add `"HKLM\zSOFTWARE\Policies\Microsoft\Windows Defender Security Center\$cat`" /v UILockdown /t REG_DWORD /d 1 /f >nul 2>&1"
+    }
+
+    # Delete SecurityHealth taskbar startup entry and neutralize windowsdefender protocol
+    cmd.exe /c "reg delete `"HKLM\zSOFTWARE\Microsoft\Windows\CurrentVersion\Run`" /v SecurityHealth /f >nul 2>&1"
+    cmd.exe /c "reg delete `"HKLM\zSOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run`" /v SecurityHealth /f >nul 2>&1"
+    cmd.exe /c "reg delete `"HKLM\zSOFTWARE\Classes\windowsdefender`" /f >nul 2>&1"
+
+    # Disable Defender services, security health services, and anti-malware kernel filter drivers
+    foreach ($svc in @('WinDefend', 'WdNisSvc', 'Sense', 'SecurityHealthService', 'wscsvc', 'WdBoot', 'WdFilter', 'WdNisDrv')) {
+        cmd.exe /c "reg add `"HKLM\zSYSTEM\ControlSet001\Services\$svc`" /v Start /t REG_DWORD /d 4 /f >nul 2>&1"
+    }
+
+    # TIER 3 EXTREME: DISABLE WINDOWS SEARCH INDEXER & SYSMAIN (SUPERFETCH)
+    Write-Host "[*] Disabling Windows Search Indexer & SuperFetch..." -ForegroundColor Yellow
+    cmd.exe /c "reg add `"HKLM\zSYSTEM\ControlSet001\Services\WSearch`" /v Start /t REG_DWORD /d 4 /f >nul 2>&1"
+    cmd.exe /c "reg add `"HKLM\zSYSTEM\ControlSet001\Services\SysMain`" /v Start /t REG_DWORD /d 4 /f >nul 2>&1"
+    cmd.exe /c "reg add `"HKLM\zSOFTWARE\Policies\Microsoft\Windows\Windows Search`" /v AllowCortana /t REG_DWORD /d 0 /f >nul 2>&1"
+    cmd.exe /c "reg add `"HKLM\zSOFTWARE\Policies\Microsoft\Windows\Windows Search`" /v DisableWebSearch /t REG_DWORD /d 1 /f >nul 2>&1"
+    cmd.exe /c "reg add `"HKLM\zSOFTWARE\Policies\Microsoft\Windows\Windows Search`" /v ConnectedSearchUseWeb /t REG_DWORD /d 0 /f >nul 2>&1"
+
+    # TIER 3 EXTREME: DISABLE TELEMETRY, DIAGNOSTICS & TRACKING SERVICES
+    Write-Host "[*] Disabling Telemetry, Diagnostics & Error Reporting services..." -ForegroundColor Yellow
+    foreach ($svc in @('DiagTrack', 'dmwappushservice', 'diagnosticshub.standardcollector.service', 'WerSvc', 'MapsBroker', 'lfsvc', 'WbioSrvc', 'DoSvc', 'PcaSvc', 'TrkWks', 'PhoneSvc', 'SensorService', 'SensrSvc', 'SensorDataService', 'wisvc', 'RetailDemo')) {
+        cmd.exe /c "reg add `"HKLM\zSYSTEM\ControlSet001\Services\$svc`" /v Start /t REG_DWORD /d 4 /f >nul 2>&1"
+    }
+
+    # Visual Performance Optimization (Disable unnecessary animation latency)
+    cmd.exe /c "reg add `"HKLM\zNTUSER\Software\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects`" /v VisualFXSetting /t REG_DWORD /d 2 /f >nul 2>&1"
+    cmd.exe /c "reg add `"HKLM\zNTUSER\Control Panel\Desktop`" /v UserPreferencesMask /t REG_BINARY /d 9012038010000000 /f >nul 2>&1"
+    cmd.exe /c "reg add `"HKLM\zNTUSER\Control Panel\Desktop\WindowMetrics`" /v MinAnimate /t REG_SZ /d 0 /f >nul 2>&1"
 
     # Disable WinRE AutoRecovery Agent
-    & reg add "HKLM\zSOFTWARE\Microsoft\Windows\CurrentVersion\ReAgent" /v AutoRecovery /t REG_DWORD /d 0 /f | Out-Null
+    cmd.exe /c "reg add `"HKLM\zSOFTWARE\Microsoft\Windows\CurrentVersion\ReAgent`" /v AutoRecovery /t REG_DWORD /d 0 /f >nul 2>&1"
 
     # Disable Edge telemetry and background processes
-    & reg add "HKLM\zSOFTWARE\Policies\Microsoft\Edge" /v HubsSidebarEnabled /t REG_DWORD /d 0 /f | Out-Null
-    & reg add "HKLM\zSOFTWARE\Policies\Microsoft\Edge" /v ShowHomeButton /t REG_DWORD /d 1 /f | Out-Null
-    & reg add "HKLM\zSOFTWARE\Policies\Microsoft\Edge" /v HideFirstRunExperience /t REG_DWORD /d 1 /f | Out-Null
-    & reg add "HKLM\zSOFTWARE\Policies\Microsoft\Edge" /v StartupBoostEnabled /t REG_DWORD /d 0 /f | Out-Null
-    & reg add "HKLM\zSOFTWARE\Policies\Microsoft\Edge" /v BackgroundModeEnabled /t REG_DWORD /d 0 /f | Out-Null
+    cmd.exe /c "reg add `"HKLM\zSOFTWARE\Policies\Microsoft\Edge`" /v HubsSidebarEnabled /t REG_DWORD /d 0 /f >nul 2>&1"
+    cmd.exe /c "reg add `"HKLM\zSOFTWARE\Policies\Microsoft\Edge`" /v ShowHomeButton /t REG_DWORD /d 1 /f >nul 2>&1"
+    cmd.exe /c "reg add `"HKLM\zSOFTWARE\Policies\Microsoft\Edge`" /v HideFirstRunExperience /t REG_DWORD /d 1 /f >nul 2>&1"
+    cmd.exe /c "reg add `"HKLM\zSOFTWARE\Policies\Microsoft\Edge`" /v StartupBoostEnabled /t REG_DWORD /d 0 /f >nul 2>&1"
+    cmd.exe /c "reg add `"HKLM\zSOFTWARE\Policies\Microsoft\Edge`" /v BackgroundModeEnabled /t REG_DWORD /d 0 /f >nul 2>&1"
 
     # 14. Pre-Stage "Post Install" Application Suite & autounattend.xml
     Write-Host "[*] Pre-staging 'Post Install' folder to Public Desktop..." -ForegroundColor Cyan
@@ -346,7 +601,7 @@ try {
         Copy-Item $xmlSource "$sysprepDir\unattend.xml" -Force | Out-Null
         Copy-Item $xmlSource "$pantherDir\unattend.xml" -Force | Out-Null
         # Register unattended answer file for Phase 2 OOBE execution
-        & reg add "HKLM\zSYSTEM\Setup" /v UnattendFile /t REG_SZ /d "C:\Windows\System32\Sysprep\unattend.xml" /f | Out-Null
+        cmd.exe /c "reg add `"HKLM\zSYSTEM\Setup`" /v UnattendFile /t REG_SZ /d `"C:\Windows\System32\Sysprep\unattend.xml`" /f >nul 2>&1"
     }
     # Ensure NO autounattend.xml exists at the root of the ISO (avoids 24H2/26H2 WinPE unattended crash)
     if (Test-Path "$stagingDir\autounattend.xml") {
@@ -361,6 +616,14 @@ try {
     reg unload HKLM\zSOFTWARE | Out-Null
     reg unload HKLM\zSYSTEM | Out-Null
 
+    # 15.1 Purge Cache & Update Backups (Extreme size reduction)
+    Write-Host "[*] Purging WinSxS backup manifests and Windows cache directories..." -ForegroundColor Cyan
+    Remove-Item -Path "$mountDir\Windows\WinSxS\Backup\*" -Recurse -Force -ErrorAction SilentlyContinue
+    Remove-Item -Path "$mountDir\Windows\WinSxS\ManifestCache\*" -Recurse -Force -ErrorAction SilentlyContinue
+    Remove-Item -Path "$mountDir\Windows\SoftwareDistribution\Download\*" -Recurse -Force -ErrorAction SilentlyContinue
+    Remove-Item -Path "$mountDir\ProgramData\Microsoft\Windows\WER\*" -Recurse -Force -ErrorAction SilentlyContinue
+    Remove-Item -Path "$mountDir\Windows\Temp\*" -Recurse -Force -ErrorAction SilentlyContinue
+
     # 16. Commit and Clean Image
     Write-Host "`n[*] Starting component cleanup..." -ForegroundColor Cyan
     & dism /English "/image:$mountDir" /Cleanup-Image /StartComponentCleanup /ResetBase | Out-Null
@@ -368,35 +631,96 @@ try {
     Write-Host "[*] Unmounting and committing changes to install.wim..." -ForegroundColor Cyan
     & dism /English /unmount-image "/mountdir:$mountDir" /commit
 
-    Write-Host "[*] Exporting to install.esd with maximum recovery compression (5.1GB target)..." -ForegroundColor Cyan
-    $esdPath = "$stagingDir\sources\install.esd"
-    if (Test-Path $esdPath) { Remove-Item $esdPath -Force -ErrorAction SilentlyContinue }
-    & dism /Export-Image /SourceImageFile:$wimPath /SourceIndex:$EditionIndex /DestinationImageFile:$esdPath /Compress:recovery /CheckIntegrity
-    if (Test-Path $esdPath) {
-        Remove-Item $wimPath -Force -ErrorAction SilentlyContinue
-        Write-Host "  [+] install.esd created successfully ($([math]::Round((Get-Item $esdPath).Length / 1GB, 2)) GB)" -ForegroundColor Green
-    } else {
-        Write-Warning "ESD export failed, falling back to max-compressed install.wim"
-        $tempWim = "$stagingDir\sources\install_clean.wim"
-        & dism /Export-Image /SourceImageFile:$wimPath /SourceIndex:$EditionIndex /DestinationImageFile:$tempWim /Compress:max
-        Remove-Item $wimPath -Force
-        Rename-Item $tempWim "install.wim"
+    Write-Host "[*] Exporting ultra-compressed install.esd with Solid LZMS recovery compression..." -ForegroundColor Cyan
+    $targetEsd = "$stagingDir\sources\install.esd"
+    if (Test-Path $targetEsd) { Remove-Item $targetEsd -Force -ErrorAction SilentlyContinue }
+    & dism /Export-Image /SourceImageFile:$wimPath /SourceIndex:$EditionIndex /DestinationImageFile:$targetEsd /Compress:recovery /CheckIntegrity
+    Remove-Item $wimPath -Force -ErrorAction SilentlyContinue
+    if (Test-Path "$stagingDir\sources\install.wim") {
+        Remove-Item "$stagingDir\sources\install.wim" -Force -ErrorAction SilentlyContinue
     }
+    Write-Host "  [+] install.esd created successfully ($([math]::Round((Get-Item $targetEsd).Length / 1GB, 2)) GB)" -ForegroundColor Green
 
-    # 17. Service boot.wim (WinPE & Setup)
-    Write-Host "`n[*] Servicing boot.wim (Hardware bypasses in setup)..." -ForegroundColor Cyan
+    # 17. Service boot.wim (WinPE & WinAurex Direct-Deploy Engine)
+    Write-Host "`n[*] Servicing boot.wim (WinAurex Direct-Deploy Engine & Hardware bypasses)..." -ForegroundColor Cyan
     $bootWim = "$stagingDir\sources\boot.wim"
     Set-ItemProperty -Path $bootWim -Name IsReadOnly -Value $false -ErrorAction SilentlyContinue
     & dism /English /mount-image "/imagefile:$bootWim" /index:2 "/mountdir:$mountDir"
 
-    reg load HKLM\zSYSTEM "$mountDir\Windows\System32\config\SYSTEM" | Out-Null
-    & reg add "HKLM\zSYSTEM\Setup\LabConfig" /v BypassTPMCheck /t REG_DWORD /d 1 /f | Out-Null
-    & reg add "HKLM\zSYSTEM\Setup\LabConfig" /v BypassSecureBootCheck /t REG_DWORD /d 1 /f | Out-Null
-    & reg add "HKLM\zSYSTEM\Setup\LabConfig" /v BypassRAMCheck /t REG_DWORD /d 1 /f | Out-Null
-    & reg add "HKLM\zSYSTEM\Setup\LabConfig" /v BypassCPUCheck /t REG_DWORD /d 1 /f | Out-Null
-    & reg add "HKLM\zSYSTEM\Setup\LabConfig" /v BypassStorageCheck /t REG_DWORD /d 1 /f | Out-Null
-    & reg add "HKLM\zSYSTEM\Setup\MoSetup" /v AllowUpgradesWithUnsupportedTPMOrCPU /t REG_DWORD /d 1 /f | Out-Null
-    reg unload HKLM\zSYSTEM | Out-Null
+    cmd.exe /c "reg load HKLM\zSYSTEM `"$mountDir\Windows\System32\config\SYSTEM`" >nul 2>&1"
+    # SHELL CONFIGURATION: WinPE natively uses winpeshl.exe
+    cmd.exe /c "reg add `"HKLM\zSYSTEM\Setup`" /v CmdLine /t REG_SZ /d `"winpeshl.exe`" /f >nul 2>&1"
+    cmd.exe /c "reg add `"HKLM\zSYSTEM\Setup\LabConfig`" /v BypassTPMCheck /t REG_DWORD /d 1 /f >nul 2>&1"
+    cmd.exe /c "reg add `"HKLM\zSYSTEM\Setup\LabConfig`" /v BypassSecureBootCheck /t REG_DWORD /d 1 /f >nul 2>&1"
+    cmd.exe /c "reg add `"HKLM\zSYSTEM\Setup\LabConfig`" /v BypassRAMCheck /t REG_DWORD /d 1 /f >nul 2>&1"
+    cmd.exe /c "reg add `"HKLM\zSYSTEM\Setup\LabConfig`" /v BypassCPUCheck /t REG_DWORD /d 1 /f >nul 2>&1"
+    cmd.exe /c "reg add `"HKLM\zSYSTEM\Setup\LabConfig`" /v BypassStorageCheck /t REG_DWORD /d 1 /f >nul 2>&1"
+    cmd.exe /c "reg add `"HKLM\zSYSTEM\Setup\LabConfig`" /v BypassDiskCheck /t REG_DWORD /d 1 /f >nul 2>&1"
+    cmd.exe /c "reg add `"HKLM\zSYSTEM\Setup\MoSetup`" /v AllowUpgradesWithUnsupportedTPMOrCPU /t REG_DWORD /d 1 /f >nul 2>&1"
+    cmd.exe /c "reg unload HKLM\zSYSTEM >nul 2>&1"
+
+    # Inject WinAurex Direct-Deploy Launcher into boot.wim
+    $deployCmdSource = Join-Path $PSScriptRoot "WinAurexDeploy.cmd"
+    if (Test-Path $deployCmdSource) {
+        Write-Host "  [+] Injecting WinAurex Direct-Deploy Engine into boot.wim and staging..." -ForegroundColor Green
+        if (-not (Test-Path "$mountDir\sources")) { New-Item -ItemType Directory -Path "$mountDir\sources" -Force | Out-Null }
+        Copy-Item $deployCmdSource "$mountDir\sources\WinAurexDeploy.cmd" -Force
+        Copy-Item $deployCmdSource "$mountDir\Windows\System32\WinAurexDeploy.cmd" -Force
+        Copy-Item $deployCmdSource "$stagingDir\sources\WinAurexDeploy.cmd" -Force
+
+        # Also copy autounattend.xml into sources for unattended deployment
+        $xmlSrc = Join-Path $PSScriptRoot "autounattend.xml"
+        if (Test-Path $xmlSrc) {
+            Copy-Item $xmlSrc "$mountDir\sources\autounattend.xml" -Force -ErrorAction SilentlyContinue
+            Copy-Item $xmlSrc "$stagingDir\sources\autounattend.xml" -Force -ErrorAction SilentlyContinue
+        }
+
+        # Configure winpeshl.ini to cleanly launch WinAurex Direct-Deploy CLI directly (bypassing Microsoft setup)
+        $winpeshlContent = @"
+[LaunchApps]
+%SYSTEMDRIVE%\Windows\System32\wpeinit.exe
+cmd.exe, /k %SYSTEMDRIVE%\sources\WinAurexDeploy.cmd
+"@
+        Set-Content -Path "$mountDir\Windows\System32\winpeshl.ini" -Value $winpeshlContent -Encoding Ascii
+
+        # Neutralize Microsoft setup.exe in boot.wim
+        if (Test-Path "$mountDir\sources\setup.exe") {
+            & takeown /f "$mountDir\sources\setup.exe" /a 2>&1 | Out-Null
+            & icacls "$mountDir\sources\setup.exe" /grant Administrators:F /c /q 2>&1 | Out-Null
+            Remove-Item "$mountDir\sources\setup.exe" -Force -ErrorAction SilentlyContinue
+        }
+
+        # Configure startnet.cmd to auto-launch the WinAurex CLI Direct-Deploy Engine
+        $startnetContent = @"
+@echo off
+title WinAurex OS - High-Speed Direct-Deploy Engine
+wpeinit
+
+if exist %SYSTEMDRIVE%\sources\WinAurexDeploy.cmd (
+    call %SYSTEMDRIVE%\sources\WinAurexDeploy.cmd
+    goto :eof
+)
+if exist %SYSTEMDRIVE%\Windows\System32\WinAurexDeploy.cmd (
+    call %SYSTEMDRIVE%\Windows\System32\WinAurexDeploy.cmd
+    goto :eof
+)
+for %%d in (C D E F G H I J K L M N O P Q R S T U V W Y Z) do (
+    if exist %%d:\sources\WinAurexDeploy.cmd (
+        call %%d:\sources\WinAurexDeploy.cmd
+        goto :eof
+    )
+)
+"@
+        Set-Content -Path "$mountDir\Windows\System32\startnet.cmd" -Value $startnetContent -Encoding Ascii
+    }
+
+    # Copy native console utilities into WinPE for countdown & options
+    foreach ($tool in @('choice.exe', 'timeout.exe', 'findstr.exe')) {
+        $hostTool = Join-Path $env:SystemRoot "System32\$tool"
+        if (Test-Path $hostTool) {
+            Copy-Item $hostTool "$mountDir\Windows\System32\$tool" -Force -ErrorAction SilentlyContinue
+        }
+    }
 
     if (Test-Path "$oemFolder\setup.bmp") {
         $setupBmp = "$mountDir\sources\setup.bmp"
@@ -412,25 +736,61 @@ try {
 
     & dism /English /unmount-image "/mountdir:$mountDir" /commit
 
-    # 17.1 Retain bootfix.bin so system prompts before CD boot and avoids infinite reboot loops
-    Write-Host "[*] Retaining bootfix.bin for proper UEFI/BIOS boot prompt..." -ForegroundColor DarkGray
-
-    # 17.2 Setup Media Configuration (PID.txt, ei.cfg, appraiserres bypass for 24H2/26H2)
-    Write-Host "[*] Configuring Modern Setup media (ei.cfg, PID.txt, appraiserres bypass)..." -ForegroundColor Cyan
-    $eiCfg = "[EditionID]`r`nProfessional`r`n[Channel]`r`nRetail`r`n[VL]`r`n0"
-    Set-Content -Path "$stagingDir\sources\ei.cfg" -Value $eiCfg -Encoding Ascii -Force
-
-    $pidTxt = "[PID]`r`nValue=VK7JG-NPHTM-C97JM-9MPGT-3V66T"
-    Set-Content -Path "$stagingDir\sources\PID.txt" -Value $pidTxt -Encoding Ascii -Force
-
-    # Zero-byte dummy appraiserres.dll bypasses all CPU, TPM, SecureBoot checks in 24H2/26H2 setup
-    $appraiser = "$stagingDir\sources\appraiserres.dll"
-    if (Test-Path $appraiser) {
-        Set-ItemProperty -Path $appraiser -Name IsReadOnly -Value $false -ErrorAction SilentlyContinue
-        (Get-Item $appraiser).Attributes = 'Normal'
-        Remove-Item $appraiser -Force -ErrorAction SilentlyContinue
+    # 17.1 Remove bootfix.bin for direct, unattended automated UEFI boot
+    if (Test-Path "$stagingDir\boot\bootfix.bin") {
+        Remove-Item "$stagingDir\boot\bootfix.bin" -Force -ErrorAction SilentlyContinue
+        Write-Host "[*] Removed bootfix.bin for direct automated UEFI boot..." -ForegroundColor Green
     }
-    New-Item -ItemType File -Path $appraiser -Force | Out-Null
+
+    # 17.2 Classic Microsoft Setup Media Complete Annihilation (Reclaims ~270 MB)
+    Write-Host "[*] Purging classic Microsoft Setup binaries and legacy databases (~270 MB)..." -ForegroundColor Cyan
+    $setupFilesToPurge = @(
+        "$stagingDir\setup.exe",
+        "$stagingDir\setup_ms.bak",
+        "$stagingDir\sources\setup.exe",
+        "$stagingDir\sources\setup_ms.bak",
+        "$stagingDir\sources\setupplatform.exe",
+        "$stagingDir\sources\setupplatform.dll",
+        "$stagingDir\sources\setupprep.exe",
+        "$stagingDir\sources\winsetup.dll",
+        "$stagingDir\sources\compatctrl.dll",
+        "$stagingDir\sources\compatresources.dll",
+        "$stagingDir\sources\appraiser.dll",
+        "$stagingDir\sources\appraiser.sdb",
+        "$stagingDir\sources\appraiserdatasha1.cat",
+        "$stagingDir\sources\appraisersdblatestoshash.txt",
+        "$stagingDir\sources\PID.txt",
+        "$stagingDir\sources\ei.cfg",
+        "$stagingDir\sources\wpx.dll",
+        "$stagingDir\sources\vhdprovider.dll"
+    )
+    foreach ($f in $setupFilesToPurge) {
+        if (Test-Path $f) { Remove-Item $f -Force -ErrorAction SilentlyContinue }
+    }
+
+    # Purge legacy upgrade/migration tables and sflist files
+    Get-ChildItem -Path "$stagingDir\sources" -Filter "sflist*.dat" -ErrorAction SilentlyContinue | Remove-Item -Force -ErrorAction SilentlyContinue
+    Get-ChildItem -Path "$stagingDir\sources" -Filter "sfpat*.inf" -ErrorAction SilentlyContinue | Remove-Item -Force -ErrorAction SilentlyContinue
+    Get-ChildItem -Path "$stagingDir\sources" -Filter "wds*.dll" -ErrorAction SilentlyContinue | Remove-Item -Force -ErrorAction SilentlyContinue
+
+    # Purge legacy setup directories
+    $setupDirsToPurge = @(
+        "$stagingDir\sources\migration",
+        "$stagingDir\sources\replacementmanifests",
+        "$stagingDir\sources\dlmanifests",
+        "$stagingDir\sources\etwproviders",
+        "$stagingDir\sources\uup",
+        "$stagingDir\sources\asz",
+        "$stagingDir\sources\ca-es",
+        "$stagingDir\sources\eu-es",
+        "$stagingDir\sources\gl-es",
+        "$stagingDir\sources\id-id",
+        "$stagingDir\sources\vi-vn"
+    )
+    foreach ($d in $setupDirsToPurge) {
+        if (Test-Path $d) { Remove-Item $d -Recurse -Force -ErrorAction SilentlyContinue }
+    }
+    Write-Host "  [+] Classic Microsoft Setup media completely eradicated from ISO" -ForegroundColor Green
 
     # 18. Compile Final Dual-Boot ISO
     Write-Host "`n[*] Compiling bootable ISO via oscdimg..." -ForegroundColor Cyan
