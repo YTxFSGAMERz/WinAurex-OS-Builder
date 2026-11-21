@@ -62,6 +62,29 @@ Instead of relying on third-party blackbox utilities, it leverages native Micros
 <!-- ═══ ANIMATED DIVIDER ═══ -->
 <img src="https://user-images.githubusercontent.com/73097560/115834477-dbab4500-a447-11eb-908a-139a6edaec5c.gif" width="100%">
 
+<h2 align="center">📀 OFFICIAL PRE-BUILT ISO DOWNLOADS</h2>
+
+<div align="center">
+
+> All 3 official WinAurex OS editions are compiled with native Microsoft DISM and oscdimg tooling, fully verified, and hosted on Google Drive.
+
+<br>
+
+<a href="https://drive.google.com/drive/folders/1ANWy6cB-PhQ5UTHWbES3MYS3NRSG5UV5"><img src="https://img.shields.io/badge/📁_BROWSE_ALL_ISOS-GOOGLE_DRIVE_FOLDER-00bcd4?style=for-the-badge&logo=googledrive&logoColor=00bcd4&labelColor=0D1117"></a>
+
+<br><br>
+
+| Edition | File Size (Drive / Disk) | Description | SHA-256 Checksum | Download Link |
+| :--- | :--- | :--- | :--- | :--- |
+| **🟣 WinAurex Extreme (Core Ultra-Lite)** | `4.90 GiB` / `5.26 GB` | Pure TUI installer, extreme slop & Defender purge, minimal footprint for low-spec VMs & gaming rigs. | `b3431d529d1d9f3c4d1d4e187a0522cda0a45445141311fa71cc9384578ba929` | [📥 Download Extreme ISO](https://drive.google.com/file/d/1FQAMw9JdAHsuhpLlnFvSXBhfZ2Uh8cZP/view?usp=drivesdk) |
+| **🟡 WinAurex Moderate (Performance & Gaming)** | `7.68 GiB` / `8.25 GB` | Debloated, telemetry stripped, Windows Update disabled, WinGet & hardware drivers 100% intact. | `b174a2eaa226bb86fc19bc76fb7b4aae091db273fb9d177bcd9e9663585340b2` | [📥 Download Moderate ISO](https://drive.google.com/file/d/1hl8GMYO5othK2nO_wOQEoFl4PCkCWSOs/view?usp=drivesdk) |
+| **🟢 WinAurex Stable (Workstation Edition)** | `7.74 GiB` / `8.32 GB` | Enterprise stability, 100% working Windows Update, WinGet, Microsoft Store, and pristine driver stack. | `42811fd25bca09b0912e876146dc77e8bd45f4155d26cb5241e654094974fa9c` | [📥 Download Stable ISO](https://drive.google.com/file/d/1vtWpSpqIiThtuZ1V7Q64NwRApABFEPqe/view?usp=drivesdk) |
+
+</div>
+
+<!-- ═══ ANIMATED DIVIDER ═══ -->
+<img src="https://user-images.githubusercontent.com/73097560/115834477-dbab4500-a447-11eb-908a-139a6edaec5c.gif" width="100%">
+
 <h2 align="center">⬛ 3 SPECIALIZED BUILD TIERS</h2>
 
 | Feature / Tier | 🟢 Tier 1: Stable Workstation | 🟡 Tier 2: Performance & Gaming | 🟣 Tier 3: Core Ultra-Lite |
@@ -73,6 +96,50 @@ Instead of relying on third-party blackbox utilities, it leverages native Micros
 | **Hardware Drivers** | **100% Intact & Untouched** | **100% Intact & Untouched** | Minimal baseline |
 | **Debloat Depth** | Consumer ads, promo games, tips | Stable + Xbox, Copilot, Teams, OneDrive | All Provisioned AppX + FODs + WinRE |
 | **Target Audience** | Workstations, daily drivers, modern rigs | High-FPS gaming, low latency, power users | Low-spec laptops, benchmark rigs, VMs |
+
+<!-- ═══ ANIMATED DIVIDER ═══ -->
+<img src="https://user-images.githubusercontent.com/73097560/115834477-dbab4500-a447-11eb-908a-139a6edaec5c.gif" width="100%">
+
+<h2 align="center">⚡ HIGH-SPEED GUIDED DIRECT-DEPLOY ENGINE (V2.0)</h2>
+
+<div align="center">
+
+```text
+================================================================================================
+      #   #   #  #####  #   #   ###   #     #  ####   #####  #   #       ###    #### 
+      #   #   #    #    ##  #  #   #  #     #  #   #  #       # #       #   #  #     
+      #   #   #    #    # # #  #####  #     #  ####   ####     #        #   #   ###  
+       # # # #     #    #  ##  #   #  #     #  #  #   #       # #       #   #      # 
+        #   #    #####  #   #  #   #   #####   #   #  #####  #   #       ###   ####  
+
+                   HIGH-SPEED GUIDED DIRECT-DEPLOYMENT ENGINE v2.0
+                            https://www.winaurex.tech
+================================================================================================
+```
+
+</div>
+
+WinAurex v2.0 completely retires the legacy, sluggish Microsoft `setup.exe` in WinPE in favor of an **Archinstall-inspired TUI Direct-Deployment Engine** (`WinAurexDeploy.cmd`):
+
+* 🚀 **Zero Setup Bloat**: Purges bloated Microsoft setup binaries (`setup.exe`, `setupplatform.*`, `winsetup.dll`, language directories) from the media, saving over 1 GB of ISO weight.
+* ⚡ **Instant Direct DISM Apply**: Applies the operating system image (`dism /apply-image`) directly to the target partition, eliminating redundant wizard screens and dramatically reducing install time.
+* 🗄️ **Guided Partition Manager**:
+  * **Zero Commands Required**: No need to memorize or type raw `diskpart` syntax.
+  * **Dual-Boot Ready**: Shrink existing Windows/Linux partitions with an interactive size prompt to safely allocate free space without touching other operating systems.
+  * **Automatic & Manual Layouts**: Choose automated 1-click UEFI/GPT partitioning or manually select, create (OS, EFI FAT32, MSR), quick format, and assign partitions (`W:` OS, `S:` ESP).
+  * **Clean Terminal Interface**: Screen-cleared (`cls`) navigation on all sub-menus with filtered tabular disk, partition, and volume overviews (no Microsoft copyright clutter or prompts).
+* 🛡️ **WinPE Native Reliability**: Engineered with chained `find.exe` filters and host-injected `findstr.exe` into `boot.wim` to prevent WinPE shell crashes across all Windows builds.
+
+<!-- ═══ ANIMATED DIVIDER ═══ -->
+<img src="https://user-images.githubusercontent.com/73097560/115834477-dbab4500-a447-11eb-908a-139a6edaec5c.gif" width="100%">
+
+<h2 align="center">🧪 VM AUTOMATION & TESTING HARNESS</h2>
+
+WinAurex OS Builder includes a dedicated automated test suite (`Automate-VMwareTest.ps1`) for VMware Workstation:
+
+* **Headless & GUI Testing**: Programmatically powers on test VMs, attaches generated ISOs, and monitors installation progress via `vmrun.exe`.
+* **Live Snapshot Capture**: Automatically dumps timestamped screen captures during boot and deployment for continuous integration and visual verification.
+* **Non-Interactive Health Checking**: Verifies that ISOs reach the desktop, complete OOBE, and successfully provision user profiles without hanging.
 
 <!-- ═══ ANIMATED DIVIDER ═══ -->
 <img src="https://user-images.githubusercontent.com/73097560/115834477-dbab4500-a447-11eb-908a-139a6edaec5c.gif" width="100%">
